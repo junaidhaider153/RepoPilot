@@ -4,7 +4,7 @@ import { BoundedContext, GitHubIngestionError } from "@/lib/github/types";
 import { AIProviderError } from "@/lib/ai/types";
 import { checkRateLimit, getRateLimitIdentifier } from "@/lib/security/rate-limiter";
 import { getAuthUser } from "@/lib/auth/get-user";
-import { getRepoSnapshot, upsertSessionBlueprint, getSessionById } from "@/lib/persistence/store";
+import { getRepoSnapshot, getSessionBlueprint, upsertSessionBlueprint, getSessionById } from "@/lib/persistence/store";
 import { reconstructContextFromSnapshot } from "@/lib/analysis/analyze-repository";
 
 export async function POST(req: NextRequest) {
@@ -71,9 +71,11 @@ export async function POST(req: NextRequest) {
     });
 
     if (sessionId) {
+      const existing = await getSessionBlueprint(sessionId);
       await upsertSessionBlueprint(sessionId, {
         opportunities,
-        selectedIndex: 0,
+        selectedIndex: existing ? existing.selected_index : 0,
+        planJson: existing ? existing.plan_json : undefined,
       });
     }
 

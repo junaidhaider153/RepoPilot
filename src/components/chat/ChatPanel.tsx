@@ -176,33 +176,77 @@ export function ChatPanel({ repoUrl, sessionId }: ChatPanelProps) {
   }, [isLoading]);
 
   // Send message
-  async function handleSend(questionText?: string) {
+  async function handleSend(
+    questionText?: string,
+    mode: "new" | "retry" | "regenerate" = "new"
+  ) {
     const q = (questionText || inputQuestion).trim();
     if (!q || isLoading) return;
 
     setErrorMsg(null);
     setLastFailedQuestion(null);
-    setInputQuestion("");
+    if (mode === "new") {
+      setInputQuestion("");
+    }
 
-    const userMessage: ChatMessageItem = {
-      id: `user-${Date.now()}`,
-      role: "user",
-      content: q,
-      created_at: new Date().toISOString(),
-    };
+    let history: Array<{ role: "user" | "assistant"; content: string }> = [];
 
-    setMessages((prev) => [...prev, userMessage]);
+    if (mode === "new") {
+      const userMessage: ChatMessageItem = {
+        id: `user-${Date.now()}`,
+        role: "user",
+        content: q,
+        created_at: new Date().toISOString(),
+      };
+      history = messages.map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+      setMessages((prev) => [...prev, userMessage]);
+    } else if (mode === "retry") {
+      let lastUserIndex = -1;
+      for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i].role === "user") {
+          lastUserIndex = i;
+          break;
+        }
+      }
+      const historySlice = lastUserIndex >= 0 ? messages.slice(0, lastUserIndex) : [];
+      history = historySlice.map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+    } else if (mode === "regenerate") {
+      let lastAsstIndex = -1;
+      for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i].role === "assistant") {
+          lastAsstIndex = i;
+          break;
+        }
+      }
+      if (lastAsstIndex >= 0) {
+        setMessages((prev) => prev.filter((_, idx) => idx !== lastAsstIndex));
+      }
+      let lastUserIndex = -1;
+      for (let i = (lastAsstIndex >= 0 ? lastAsstIndex - 1 : messages.length - 1); i >= 0; i--) {
+        if (messages[i].role === "user") {
+          lastUserIndex = i;
+          break;
+        }
+      }
+      const historySlice = lastUserIndex >= 0 ? messages.slice(0, lastUserIndex) : [];
+      history = historySlice.map((m) => ({
+        role: m.role,
+        content: m.content,
+      }));
+    }
+
     setIsLoading(true);
 
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
     try {
-      const history = messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
-
       const res = await fetch("/api/repository/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -262,7 +306,7 @@ export function ChatPanel({ repoUrl, sessionId }: ChatPanelProps) {
 
   function handleRetry() {
     if (lastFailedQuestion) {
-      handleSend(lastFailedQuestion);
+      handleSend(lastFailedQuestion, "retry");
     }
   }
 
@@ -270,7 +314,7 @@ export function ChatPanel({ repoUrl, sessionId }: ChatPanelProps) {
     // Find the last user message
     const lastUserMsg = [...messages].reverse().find((m) => m.role === "user");
     if (lastUserMsg) {
-      handleSend(lastUserMsg.content);
+      handleSend(lastUserMsg.content, "regenerate");
     }
   }
 

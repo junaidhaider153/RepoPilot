@@ -102,7 +102,13 @@ export function InnovationPanel({ repoUrl, sessionId }: InnovationPanelProps) {
   }
 
   async function handleSelectOpportunity(opp: InnovationOpportunity) {
+    const oppIndex = opportunities ? opportunities.findIndex((o) => o.id === opp.id) : 0;
+    const safeIndex = oppIndex >= 0 ? oppIndex : 0;
+
     setSelectedOpp(opp);
+    if (workspace) {
+      workspace.setSelectedIndex(safeIndex);
+    }
     setIsLoadingBlueprint(true);
     setErrorMsg(null);
 
@@ -114,6 +120,7 @@ export function InnovationPanel({ repoUrl, sessionId }: InnovationPanelProps) {
           url: repoUrl,
           opportunity: opp,
           sessionId,
+          selectedIndex: safeIndex,
         }),
       });
 

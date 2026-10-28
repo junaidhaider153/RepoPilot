@@ -82,14 +82,6 @@ export async function POST(req: NextRequest) {
           .slice(-10)
       : [];
 
-    // Save user question to message persistence if sessionId is active
-    if (sessionId) {
-      await insertSessionMessage(sessionId, {
-        role: "user",
-        content: body.question,
-      });
-    }
-
     const answer = await answerRepositoryQuestion({
       url: body.url,
       question: body.question,
@@ -97,8 +89,12 @@ export async function POST(req: NextRequest) {
       context: cachedContext,
     });
 
-    // Save assistant answer to message persistence
+    // Save both user question and assistant answer after successful answer synthesis (prevents orphan user questions)
     if (sessionId) {
+      await insertSessionMessage(sessionId, {
+        role: "user",
+        content: body.question,
+      });
       await insertSessionMessage(sessionId, {
         role: "assistant",
         content: answer.answer,
