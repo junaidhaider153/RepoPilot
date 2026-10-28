@@ -5,6 +5,7 @@ import { AIProviderError } from "@/lib/ai/types";
 import { checkRateLimit, getRateLimitIdentifier } from "@/lib/security/rate-limiter";
 import { getAuthUser } from "@/lib/auth/get-user";
 import { getRepoSnapshot, upsertSessionDocument, getSessionById } from "@/lib/persistence/store";
+import { reconstructContextFromSnapshot } from "@/lib/analysis/analyze-repository";
 
 export async function POST(req: NextRequest) {
   try {
@@ -61,21 +62,7 @@ export async function POST(req: NextRequest) {
     if (sessionId) {
       const snapshot = await getRepoSnapshot(sessionId);
       if (snapshot && snapshot.analysis_json) {
-        cachedContext = {
-          repository: snapshot.analysis_json.repository,
-          files: snapshot.analysis_json.analyzedFiles.map((f) => ({
-            path: f.path,
-            category: (f.category as any) || "core",
-            content: (f as any).content || `File: ${f.path}`,
-            sizeBytes: f.sizeBytes,
-          })),
-          totalChars: 5000,
-          treeTruncated: false,
-          totalTreeBlobs: snapshot.selected_paths.length,
-          analyzedFilesCount: snapshot.analysis_json.analyzedFiles.length,
-          detectedTechnologies: snapshot.analysis_json.detectedTechnologies || [],
-          coverageNotes: snapshot.coverage_notes,
-        };
+        cachedContext = reconstructContextFromSnapshot(snapshot);
       }
     }
 
