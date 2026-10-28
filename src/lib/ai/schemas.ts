@@ -1,5 +1,42 @@
 import { z } from "zod";
 
+/**
+ * Coerces string or array values into string arrays to gracefully handle
+ * LLMs that output lists as newlines or single strings instead of JSON arrays.
+ */
+export const StringArrayCoerce = z.preprocess((val) => {
+  if (Array.isArray(val)) {
+    return val
+      .map((item) => (typeof item === "string" ? item : String(item)))
+      .filter((s) => s.trim().length > 0);
+  }
+  if (typeof val === "string") {
+    const lines = val
+      .split(/\r?\n|;/)
+      .map((line) => line.replace(/^[\s*\-•0-9.)]+/, "").trim())
+      .filter((line) => line.length > 0);
+    return lines.length > 0 ? lines : [val.trim()];
+  }
+  return [];
+}, z.array(z.string()));
+
+export const StringArrayMin1 = z.preprocess((val) => {
+  if (Array.isArray(val)) {
+    const arr = val
+      .map((item) => (typeof item === "string" ? item : String(item)))
+      .filter((s) => s.trim().length > 0);
+    return arr.length > 0 ? arr : ["General"];
+  }
+  if (typeof val === "string") {
+    const lines = val
+      .split(/\r?\n|;/)
+      .map((line) => line.replace(/^[\s*\-•0-9.)]+/, "").trim())
+      .filter((line) => line.length > 0);
+    return lines.length > 0 ? lines : [val.trim()];
+  }
+  return ["General"];
+}, z.array(z.string()).min(1));
+
 export const EvidenceReferenceSchema = z.object({
   path: z.string().min(1, "Path must not be empty"),
   reason: z.string().min(1, "Reason must not be empty"),
@@ -11,19 +48,19 @@ export type EvidenceReference = z.infer<typeof EvidenceReferenceSchema>;
 export const RepositoryAnalysisSchema = z.object({
   repositoryName: z.string().min(1),
   description: z.string().default(""),
-  detectedTechnologies: z.array(z.string()).default([]),
+  detectedTechnologies: StringArrayCoerce.default([]),
   purposeSummary: z.string().min(1),
   architectureOverview: z.string().min(1),
   keyComponents: z.array(
     z.object({
-      name: z.string(),
-      purpose: z.string(),
+      name: z.string().default("Component"),
+      purpose: z.string().default(""),
       evidence: z.array(EvidenceReferenceSchema).default([]),
     })
   ).default([]),
-  observedFacts: z.array(z.string()).default([]),
-  inferences: z.array(z.string()).default([]),
-  unknowns: z.array(z.string()).default([]),
+  observedFacts: StringArrayCoerce.default([]),
+  inferences: StringArrayCoerce.default([]),
+  unknowns: StringArrayCoerce.default([]),
 });
 
 export type RepositoryAnalysis = z.infer<typeof RepositoryAnalysisSchema>;
@@ -40,10 +77,10 @@ export type ChatAnswer = z.infer<typeof ChatAnswerSchema>;
 export const SharedProjectSpecSchema = z.object({
   projectName: z.string(),
   coreConcept: z.string(),
-  targetAudience: z.array(z.string()),
-  keyDifferentiators: z.array(z.string()),
-  suggestedStack: z.array(z.string()),
-  coreCapabilities: z.array(z.string()),
+  targetAudience: StringArrayCoerce.default([]),
+  keyDifferentiators: StringArrayCoerce.default([]),
+  suggestedStack: StringArrayCoerce.default([]),
+  coreCapabilities: StringArrayCoerce.default([]),
 });
 
 export type SharedProjectSpec = z.infer<typeof SharedProjectSpecSchema>;
@@ -53,31 +90,31 @@ export const ProjectDocumentsSchema = z.object({
     title: z.string(),
     tagline: z.string(),
     problemStatement: z.string(),
-    targetUsers: z.array(z.string()),
-    goals: z.array(z.string()),
-    userStories: z.array(z.string()),
-    acceptanceCriteria: z.array(z.string()),
+    targetUsers: StringArrayCoerce.default([]),
+    goals: StringArrayCoerce.default([]),
+    userStories: StringArrayCoerce.default([]),
+    acceptanceCriteria: StringArrayCoerce.default([]),
   }),
   trd: z.object({
     title: z.string(),
-    technologyStack: z.array(z.string()),
+    technologyStack: StringArrayCoerce.default([]),
     architecturePattern: z.string(),
-    constraintsAndLimits: z.array(z.string()),
-    securityAndPrivacy: z.array(z.string()),
-    testingStrategy: z.array(z.string()),
+    constraintsAndLimits: StringArrayCoerce.default([]),
+    securityAndPrivacy: StringArrayCoerce.default([]),
+    testingStrategy: StringArrayCoerce.default([]),
   }),
   tdd: z.object({
     title: z.string(),
     components: z.array(
       z.object({
-        name: z.string(),
-        role: z.string(),
-        interface: z.string(),
+        name: z.string().default("Component"),
+        role: z.preprocess((val) => (typeof val === "string" ? val : JSON.stringify(val)), z.string()).default(""),
+        interface: z.preprocess((val) => (typeof val === "string" ? val : JSON.stringify(val)), z.string()).default(""),
       })
-    ),
-    dataModels: z.array(z.string()),
-    requestFlows: z.array(z.string()),
-    risksAndMitigations: z.array(z.string()),
+    ).default([]),
+    dataModels: StringArrayCoerce.default([]),
+    requestFlows: StringArrayCoerce.default([]),
+    risksAndMitigations: StringArrayCoerce.default([]),
   }),
   codingAgentPrompt: z.string().min(10),
 });
@@ -88,14 +125,14 @@ export const InnovationOpportunitySchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   problem: z.string().min(1),
-  targetUsers: z.array(z.string()).min(1),
+  targetUsers: StringArrayMin1,
   proposedSolution: z.string().min(1),
   expectedValue: z.string().min(1),
   complexity: z.enum(["low", "medium", "high"]),
   differentiationHypothesis: z.string().min(1),
   evidence: z.array(EvidenceReferenceSchema).default([]),
-  assumptions: z.array(z.string()).default([]),
-  risks: z.array(z.string()).default([]),
+  assumptions: StringArrayCoerce.default([]),
+  risks: StringArrayCoerce.default([]),
   suggestedPriority: z.number().int().min(1).max(3),
 });
 
@@ -107,22 +144,22 @@ export const InnovationOpportunitiesSchema = z.object({
 
 export const ImplementationPhaseSchema = z.object({
   name: z.string().min(1),
-  tasks: z.array(z.string()).min(1),
-  acceptanceCriteria: z.array(z.string()).min(1),
-  tests: z.array(z.string()).min(1),
+  tasks: StringArrayMin1,
+  acceptanceCriteria: StringArrayMin1,
+  tests: StringArrayMin1,
 });
 
 export const InnovationBlueprintSchema = z.object({
   opportunityId: z.string().min(1),
   title: z.string().min(1),
   summary: z.string().min(1),
-  requirements: z.array(z.string()).min(1),
-  affectedComponents: z.array(z.string()).min(1),
-  architectureChanges: z.array(z.string()).default([]),
-  dataModelChanges: z.array(z.string()).default([]),
-  apiChanges: z.array(z.string()).default([]),
+  requirements: StringArrayMin1,
+  affectedComponents: StringArrayMin1,
+  architectureChanges: StringArrayCoerce.default([]),
+  dataModelChanges: StringArrayCoerce.default([]),
+  apiChanges: StringArrayCoerce.default([]),
   implementationPhases: z.array(ImplementationPhaseSchema).min(1),
-  risks: z.array(z.string()).min(1),
+  risks: StringArrayMin1,
   codingAgentPrompt: z.string().min(10),
 });
 

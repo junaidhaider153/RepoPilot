@@ -117,6 +117,7 @@ describe("GemmaProvider", () => {
       baseUrl: "https://api.groq.com/openai/v1",
       apiKey: "test-key",
       model: "gemma2-9b-it",
+      maxRetries: 1,
     });
 
     await expect(

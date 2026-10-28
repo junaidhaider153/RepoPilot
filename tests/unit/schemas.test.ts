@@ -78,6 +78,42 @@ describe("AI Runtime Output Schemas", () => {
     expect(result.success).toBe(true);
   });
 
+  it("coerces string constraintsAndLimits into an array of strings seamlessly", () => {
+    const withStringConstraints = {
+      prd: {
+        title: "Test",
+        tagline: "Test",
+        problemStatement: "Test",
+        targetUsers: "Developers",
+        goals: "Fast",
+        userStories: "Story 1",
+        acceptanceCriteria: "Criteria 1",
+      },
+      trd: {
+        title: "Test",
+        technologyStack: "Next.js\nTypeScript",
+        architecturePattern: "Serverless",
+        constraintsAndLimits: "1. Rate limit 50 req/s\n2. Bounded context 120KB",
+        securityAndPrivacy: "Encrypted",
+        testingStrategy: "Unit tests",
+      },
+      tdd: {
+        title: "Test",
+        components: [{ name: "Parser", role: "Parses input", interface: "interface" }],
+        dataModels: "Model 1",
+        requestFlows: "Flow 1",
+        risksAndMitigations: "Risk 1",
+      },
+      codingAgentPrompt: "Implement the component with full coverage.",
+    };
+
+    const parsed = ProjectDocumentsSchema.parse(withStringConstraints);
+    expect(Array.isArray(parsed.trd.constraintsAndLimits)).toBe(true);
+    expect(parsed.trd.constraintsAndLimits.length).toBe(2);
+    expect(parsed.trd.constraintsAndLimits[0]).toBe("Rate limit 50 req/s");
+    expect(parsed.trd.technologyStack).toContain("Next.js");
+  });
+
   it("strictly enforces exactly three Innovation Opportunities", () => {
     const makeOpp = (id: string, priority: number) => ({
       id,

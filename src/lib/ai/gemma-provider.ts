@@ -10,6 +10,23 @@ export interface GemmaConfig {
   apiKey?: string;
   model?: string;
   timeoutMs?: number;
+  maxRetries?: number;
+}
+
+function cleanErrorMessage(rawText: string, status: number): string {
+  try {
+    const parsed = JSON.parse(rawText);
+    const errObj = Array.isArray(parsed) ? parsed[0]?.error : parsed?.error;
+    if (errObj?.message) {
+      return errObj.message;
+    }
+  } catch {
+    // Not valid JSON
+  }
+  if (status === 503) {
+    return "This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again in a moment.";
+  }
+  return rawText.slice(0, 300) || `HTTP error ${status}`;
 }
 
 export class GemmaProvider implements InferenceProvider {
@@ -18,8 +35,10 @@ export class GemmaProvider implements InferenceProvider {
   private baseUrl: string;
   private apiKey?: string;
   private defaultTimeoutMs: number;
+  private maxRetries: number;
 
   constructor(config: GemmaConfig = {}) {
+    this.maxRetries = config.maxRetries ?? 3;
     this.baseUrl = (
       config.baseUrl ||
       process.env.GEMMA_API_BASE_URL ||
@@ -32,14 +51,18 @@ export class GemmaProvider implements InferenceProvider {
     }
 
     this.apiKey = (config.apiKey || process.env.GEMMA_API_KEY || "").trim();
-    this.modelId = (config.model || process.env.GEMMA_MODEL || "gemma2-9b-it").trim();
+    this.modelId = (config.model || process.env.GEMMA_MODEL || "gemini-3.5-flash").trim();
     this.defaultTimeoutMs =
       config.timeoutMs ||
-      parseInt(process.env.AI_REQUEST_TIMEOUT_MS || "30000", 10);
+      parseInt(process.env.AI_REQUEST_TIMEOUT_MS || "60000", 10);
   }
 
   public isConfigured(): boolean {
-    return Boolean(this.baseUrl && this.modelId && (this.apiKey || this.baseUrl.includes("localhost") || this.baseUrl.includes("127.0.0.1")));
+    return Boolean(
+      this.baseUrl &&
+      this.modelId &&
+      (this.apiKey || this.baseUrl.includes("localhost") || this.baseUrl.includes("127.0.0.1"))
+    );
   }
 
   public getDisclosure() {
@@ -102,35 +125,57 @@ export class GemmaProvider implements InferenceProvider {
     }
 
     try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers,
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
+      let res: Response | null = null;
+      let lastErrorText = "";
+      const maxRetries = this.maxRetries;
 
-      if (res.status === 401 || res.status === 403) {
-        throw new AIProviderError(
-          "AI_PROVIDER_ERROR",
-          `Authentication failed with Gemma inference provider (HTTP ${res.status}). Please check your GEMMA_API_KEY.`,
-          res.status
-        );
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        res = await fetch(endpoint, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+
+        if (res.ok) {
+          break;
+        }
+
+        // Retry on transient 503 (high demand) or 429 (rate limit)
+        if ((res.status === 503 || res.status === 429) && attempt < maxRetries) {
+          const delay = attempt * 2000;
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          continue;
+        }
+
+        lastErrorText = await res.text().catch(() => "");
+        break;
       }
 
-      if (res.status === 429) {
-        throw new AIProviderError(
-          "AI_RATE_LIMITED",
-          "Gemma inference provider rate limit exceeded. Please wait a moment before trying again.",
-          429
-        );
-      }
+      if (!res || !res.ok) {
+        const status = res?.status || 500;
+        const userMsg = cleanErrorMessage(lastErrorText, status);
 
-      if (!res.ok) {
-        const errorText = await res.text().catch(() => "");
+        if (status === 401 || status === 403) {
+          throw new AIProviderError(
+            "AI_PROVIDER_ERROR",
+            `Authentication failed with AI inference provider: ${userMsg}`,
+            status
+          );
+        }
+
+        if (status === 429) {
+          throw new AIProviderError(
+            "AI_RATE_LIMITED",
+            `Inference provider rate limit exceeded: ${userMsg}`,
+            429
+          );
+        }
+
         throw new AIProviderError(
           "AI_PROVIDER_ERROR",
-          `Gemma provider returned error HTTP ${res.status}: ${errorText.slice(0, 300)}`,
-          res.status
+          `AI provider error (HTTP ${status}): ${userMsg}`,
+          status
         );
       }
 
@@ -141,7 +186,7 @@ export class GemmaProvider implements InferenceProvider {
       if (!content || typeof content !== "string") {
         throw new AIProviderError(
           "AI_OUTPUT_INVALID",
-          "Gemma provider returned an empty or malformed completion message.",
+          "Inference provider returned an empty or malformed completion message.",
           502
         );
       }
@@ -163,13 +208,13 @@ export class GemmaProvider implements InferenceProvider {
       if (err instanceof Error && err.name === "AbortError") {
         throw new AIProviderError(
           "AI_PROVIDER_TIMEOUT",
-          `Gemma inference request timed out after ${timeout}ms.`,
+          `Inference request timed out after ${timeout}ms.`,
           504
         );
       }
       throw new AIProviderError(
         "AI_PROVIDER_ERROR",
-        `Failed to reach Gemma inference provider: ${err instanceof Error ? err.message : String(err)}`,
+        `Failed to reach AI inference provider: ${err instanceof Error ? err.message : String(err)}`,
         502
       );
     } finally {
@@ -177,4 +222,3 @@ export class GemmaProvider implements InferenceProvider {
     }
   }
 }
-
