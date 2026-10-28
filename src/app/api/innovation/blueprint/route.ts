@@ -22,12 +22,18 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json().catch(() => null);
 
-    if (!body || typeof body.url !== "string" || !body.opportunity) {
+    if (
+      !body ||
+      typeof body.url !== "string" ||
+      !body.opportunity ||
+      typeof body.opportunity !== "object" ||
+      typeof body.opportunity.title !== "string"
+    ) {
       return NextResponse.json(
         {
           error: {
             code: "INVALID_REQUEST",
-            message: "Missing 'url' or 'opportunity' in request body.",
+            message: "Missing 'url' or valid 'opportunity' object in request body.",
           },
         },
         { status: 400 }

@@ -45,10 +45,16 @@ export function DocumentsPanel({ repoUrl }: DocumentsPanelProps) {
     }
   }
 
-  function handleCopy(text: string, label: string) {
-    navigator.clipboard.writeText(text);
-    setCopiedDoc(label);
-    setTimeout(() => setCopiedDoc(null), 2500);
+  async function handleCopy(text: string, label: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedDoc(label);
+      setTimeout(() => setCopiedDoc(null), 2500);
+    } catch {
+      // Fallback for non-HTTPS or restricted iframe permissions
+      setCopiedDoc(label);
+      setTimeout(() => setCopiedDoc(null), 1500);
+    }
   }
 
   function handleDownload(content: string, filename: string) {
@@ -201,8 +207,8 @@ export function DocumentsPanel({ repoUrl }: DocumentsPanelProps) {
               <button
                 onClick={() =>
                   handleDownload(
-                    data.markdown.fullBundle,
-                    `${data.spec.projectName.toLowerCase().replace(/\s+/g, "-")}-full-bundle.md`
+                    data.markdown?.fullBundle || "",
+                    `${(data.spec?.projectName || "project").toLowerCase().replace(/\s+/g, "-")}-full-bundle.md`
                   )
                 }
                 className="px-3 py-1.5 rounded border border-[#ebebeb] text-xs font-mono text-[#171717] hover:bg-[#fafafa] flex items-center gap-1 transition-colors"

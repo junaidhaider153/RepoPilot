@@ -22,19 +22,33 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json().catch(() => null);
 
-    if (!body || typeof body.url !== "string" || typeof body.question !== "string") {
+    if (
+      !body ||
+      typeof body.url !== "string" ||
+      typeof body.question !== "string" ||
+      body.question.trim().length === 0
+    ) {
       return NextResponse.json(
         {
           error: {
             code: "INVALID_REQUEST",
-            message: "Missing 'url' or 'question' in request body.",
+            message: "Missing or empty 'url' or 'question' in request body.",
           },
         },
         { status: 400 }
       );
     }
 
-    const history = Array.isArray(body.history) ? body.history.slice(-10) : [];
+    const history = Array.isArray(body.history)
+      ? body.history
+          .filter(
+            (h: any) =>
+              h &&
+              (h.role === "user" || h.role === "assistant") &&
+              typeof h.content === "string"
+          )
+          .slice(-10)
+      : [];
 
     const answer = await answerRepositoryQuestion({
       url: body.url,

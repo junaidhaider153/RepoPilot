@@ -85,10 +85,15 @@ export function InnovationPanel({ repoUrl }: InnovationPanelProps) {
     }
   }
 
-  function handleCopyPrompt(text: string) {
-    navigator.clipboard.writeText(text);
-    setCopiedPrompt(true);
-    setTimeout(() => setCopiedPrompt(false), 2500);
+  async function handleCopyPrompt(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedPrompt(true);
+      setTimeout(() => setCopiedPrompt(false), 2500);
+    } catch {
+      setCopiedPrompt(true);
+      setTimeout(() => setCopiedPrompt(false), 1500);
+    }
   }
 
   function handleDownloadMarkdown(content: string, filename: string) {

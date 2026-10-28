@@ -60,6 +60,7 @@ export interface BoundedContext {
 }
 
 export type GitHubErrorCode =
+  | "INVALID_REQUEST"
   | "INVALID_REPOSITORY_URL"
   | "REPOSITORY_NOT_FOUND_OR_INACCESSIBLE"
   | "GITHUB_RATE_LIMITED"

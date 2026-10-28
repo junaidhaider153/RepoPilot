@@ -164,8 +164,8 @@ export class GemmaProvider implements InferenceProvider {
           break;
         }
 
-        // If this model hit quota (429) or persistent 503, try next candidate model
-        if (candidateModels.length > 1 && (lastStatus === 429 || lastStatus === 503)) {
+        // If this model hit quota (429), persistent 503, or not found (404), try next candidate model
+        if (candidateModels.length > 1 && (lastStatus === 429 || lastStatus === 503 || lastStatus === 404)) {
           continue;
         }
         break;

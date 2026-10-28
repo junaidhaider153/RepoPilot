@@ -1,6 +1,6 @@
 import { validateGitHubRepoUrl } from "@/lib/github/validate-repo-url";
 import { ingestRepository } from "@/lib/github/client";
-import { BoundedContext } from "@/lib/github/types";
+import { BoundedContext, GitHubIngestionError } from "@/lib/github/types";
 import {
   getAIProvider,
   buildChatPrompt,
@@ -26,11 +26,15 @@ export async function answerRepositoryQuestion({
 }: AnswerQuestionInput): Promise<ChatAnswer> {
   const trimmedQuestion = question.trim();
   if (!trimmedQuestion) {
-    throw new Error("Question cannot be empty.");
+    throw new GitHubIngestionError("INVALID_REQUEST", "Question cannot be empty.", 400);
   }
 
   if (trimmedQuestion.length > 1000) {
-    throw new Error("Question exceeds maximum allowed length of 1000 characters.");
+    throw new GitHubIngestionError(
+      "INVALID_REQUEST",
+      "Question exceeds maximum allowed length of 1000 characters.",
+      400
+    );
   }
 
   const repoInput = validateGitHubRepoUrl(url);

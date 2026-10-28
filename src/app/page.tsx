@@ -245,7 +245,7 @@ export default function HomePage() {
           {/* Active Tab Panels: Keep mounted to preserve state across tab switches */}
           <div>
             <div className={activeTab === "overview" ? "block" : "hidden"}>
-              <OverviewPanel data={analysisResult} />
+              <OverviewPanel key={analyzedUrl} data={analysisResult} />
             </div>
             <div className={activeTab === "chat" ? "block" : "hidden"}>
               <ChatPanel key={analyzedUrl} repoUrl={analyzedUrl} />

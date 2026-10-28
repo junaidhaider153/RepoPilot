@@ -13,7 +13,7 @@ export const StringArrayCoerce = z.preprocess((val) => {
   if (typeof val === "string") {
     const lines = val
       .split(/\r?\n|;/)
-      .map((line) => line.replace(/^[\s*\-•0-9.)]+/, "").trim())
+      .map((line) => line.replace(/^(?:\s*[-*•]\s*|\s*\d+[.)]\s+)/, "").trim())
       .filter((line) => line.length > 0);
     return lines.length > 0 ? lines : [val.trim()];
   }
@@ -30,7 +30,7 @@ export const StringArrayMin1 = z.preprocess((val) => {
   if (typeof val === "string") {
     const lines = val
       .split(/\r?\n|;/)
-      .map((line) => line.replace(/^[\s*\-•0-9.)]+/, "").trim())
+      .map((line) => line.replace(/^(?:\s*[-*•]\s*|\s*\d+[.)]\s+)/, "").trim())
       .filter((line) => line.length > 0);
     return lines.length > 0 ? lines : [val.trim()];
   }
@@ -175,49 +175,41 @@ export function extractAndParseJson<T>(rawText: string, schema: z.ZodType<T, any
   cleaned = cleaned.replace(/<thought>[\s\S]*?<\/thought>/gi, "").trim();
   cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
 
-  // Strip markdown code fences if present (e.g. ```json ... ```)
-  if (cleaned.startsWith("```")) {
-    const lines = cleaned.split("\n");
-    if (lines[0].startsWith("```")) {
-      lines.shift();
-    }
-    if (lines.length > 0 && lines[lines.length - 1].trim().startsWith("```")) {
-      lines.pop();
-    }
-    cleaned = lines.join("\n").trim();
+  // Try direct parse first if it's already pristine JSON
+  try {
+    const directParsed = JSON.parse(cleaned);
+    return schema.parse(directParsed);
+  } catch {
+    // Continue with resilient extraction
   }
 
-  // Also handle leading text before `{` or `[`
+  // Strip markdown code fences if present (e.g. ```json ... ``` or embedded in commentary)
+  const fenceMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (fenceMatch && fenceMatch[1]) {
+    cleaned = fenceMatch[1].trim();
+  }
+
+  // Locate starting bracket and its matching closing delimiter
   const jsonStart = cleaned.indexOf("{");
   const jsonArrayStart = cleaned.indexOf("[");
-  let startIndex = -1;
 
-  if (jsonStart !== -1 && jsonArrayStart !== -1) {
-    startIndex = Math.min(jsonStart, jsonArrayStart);
-  } else if (jsonStart !== -1) {
+  let startIndex = -1;
+  let matchingClosingChar = "}";
+
+  if (jsonStart !== -1 && (jsonArrayStart === -1 || jsonStart < jsonArrayStart)) {
     startIndex = jsonStart;
+    matchingClosingChar = "}";
   } else if (jsonArrayStart !== -1) {
     startIndex = jsonArrayStart;
+    matchingClosingChar = "]";
   }
 
-  if (startIndex > 0) {
-    cleaned = cleaned.slice(startIndex);
-  }
-
-  const jsonEnd = cleaned.lastIndexOf("}");
-  const jsonArrayEnd = cleaned.lastIndexOf("]");
-  let endIndex = -1;
-
-  if (jsonEnd !== -1 && jsonArrayEnd !== -1) {
-    endIndex = Math.max(jsonEnd, jsonArrayEnd);
-  } else if (jsonEnd !== -1) {
-    endIndex = jsonEnd;
-  } else if (jsonArrayEnd !== -1) {
-    endIndex = jsonArrayEnd;
-  }
-
-  if (endIndex !== -1 && endIndex < cleaned.length - 1) {
-    cleaned = cleaned.slice(0, endIndex + 1);
+  if (startIndex !== -1) {
+    const fromStart = cleaned.slice(startIndex);
+    const endIndex = fromStart.lastIndexOf(matchingClosingChar);
+    if (endIndex !== -1) {
+      cleaned = fromStart.slice(0, endIndex + 1);
+    }
   }
 
   let parsed: unknown;

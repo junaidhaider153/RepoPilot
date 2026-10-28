@@ -208,15 +208,18 @@ export async function ingestRepository(
   input: RepositoryInput,
   options: IngestionOptions = {}
 ): Promise<BoundedContext> {
+  const envMaxFiles = parseInt(process.env.MAX_REPOSITORY_FILES || "", 10);
   const maxFiles =
-    options.maxFiles ??
-    (process.env.MAX_REPOSITORY_FILES ? parseInt(process.env.MAX_REPOSITORY_FILES, 10) : 25);
+    options.maxFiles ?? (Number.isFinite(envMaxFiles) && envMaxFiles > 0 ? envMaxFiles : 25);
+
+  const envMaxBytes = parseInt(process.env.MAX_FILE_BYTES || "", 10);
   const maxFileBytes =
-    options.maxFileBytes ??
-    (process.env.MAX_FILE_BYTES ? parseInt(process.env.MAX_FILE_BYTES, 10) : 49152);
+    options.maxFileBytes ?? (Number.isFinite(envMaxBytes) && envMaxBytes > 0 ? envMaxBytes : 49152);
+
+  const envMaxContext = parseInt(process.env.MAX_CONTEXT_CHARS || "", 10);
   const maxContextChars =
-    options.maxContextChars ??
-    (process.env.MAX_CONTEXT_CHARS ? parseInt(process.env.MAX_CONTEXT_CHARS, 10) : 80000);
+    options.maxContextChars ?? (Number.isFinite(envMaxContext) && envMaxContext > 0 ? envMaxContext : 80000);
+
   const maxSingleFileChars = 16384;
   const fetchOpts: FetchOptions = {
     githubToken: options.githubToken || process.env.GITHUB_TOKEN,
@@ -279,10 +282,10 @@ export async function ingestRepository(
 
     // Sanitize null bytes or non-text characters
     let cleanContent = content.replace(/\0/g, "");
+    const singleFileSuffix = `\n... [File content bounded to ${maxSingleFileChars} chars to preserve context balance]`;
     if (cleanContent.length > maxSingleFileChars) {
-      cleanContent =
-        cleanContent.slice(0, maxSingleFileChars) +
-        `\n... [File content bounded to ${maxSingleFileChars} chars to preserve context balance]`;
+      const sliceLen = Math.max(0, maxSingleFileChars - singleFileSuffix.length);
+      cleanContent = cleanContent.slice(0, sliceLen) + singleFileSuffix;
     }
     const charLength = cleanContent.length;
 
@@ -290,10 +293,10 @@ export async function ingestRepository(
     if (currentTotalChars + charLength > maxContextChars) {
       // Truncate file content to fit remaining budget
       const remainingChars = maxContextChars - currentTotalChars;
-      if (remainingChars > 500) {
-        const truncatedContent =
-          cleanContent.slice(0, remainingChars) +
-          "\n... [File content truncated to respect context limit]";
+      const truncationSuffix = "\n... [File content truncated to respect context limit]";
+      if (remainingChars > truncationSuffix.length + 100) {
+        const sliceLen = Math.max(0, remainingChars - truncationSuffix.length);
+        const truncatedContent = cleanContent.slice(0, sliceLen) + truncationSuffix;
         retrievedFiles.push({
           path: item.path,
           content: truncatedContent,

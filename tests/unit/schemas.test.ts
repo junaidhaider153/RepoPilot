@@ -1,10 +1,13 @@
 import { describe, it, expect } from "vitest";
+import { z } from "zod";
 import {
   RepositoryAnalysisSchema,
   ChatAnswerSchema,
   ProjectDocumentsSchema,
   InnovationOpportunitiesSchema,
   InnovationBlueprintSchema,
+  extractAndParseJson,
+  StringArrayCoerce,
 } from "@/lib/ai/schemas";
 
 describe("AI Runtime Output Schemas", () => {
@@ -165,6 +168,33 @@ describe("AI Runtime Output Schemas", () => {
     };
 
     expect(InnovationBlueprintSchema.safeParse(valid).success).toBe(true);
+  });
+
+  it("extractAndParseJson handles commentary, markdown fences, and trailing markdown brackets", () => {
+    const rawWithCommentary = `Here is the requested specification:
+\`\`\`json
+{
+  "name": "RepoPilot",
+  "version": "1.0.0"
+}
+\`\`\`
+Hope this helps! See documentation at [docs link](https://example.com).`;
+
+    const schema = z.object({
+      name: z.string(),
+      version: z.string(),
+    });
+
+    const parsed = extractAndParseJson(rawWithCommentary, schema);
+    expect(parsed.name).toBe("RepoPilot");
+    expect(parsed.version).toBe("1.0.0");
+  });
+
+  it("StringArrayCoerce strips list bullets while preserving version numbers", () => {
+    const raw = "1. Node.js 18\n* 3.11 - Python\n- React 19";
+    const schema = z.object({ items: StringArrayCoerce });
+    const parsed = schema.parse({ items: raw });
+    expect(parsed.items).toEqual(["Node.js 18", "3.11 - Python", "React 19"]);
   });
 });
 

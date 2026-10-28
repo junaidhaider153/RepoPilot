@@ -70,7 +70,8 @@ const SECRET_PATTERNS = [
   /^id_ed25519/i,
   /credentials\.json$/i,
   /service-account.*\.json$/i,
-  /secret/i,
+  /client_secret.*\.json$/i,
+  /^\.?secrets?(\.[\w]+)?$/i,
 ];
 
 const SKIPPED_LOCKFILES = new Set([
@@ -176,9 +177,17 @@ export function categorizeAndScoreFile(path: string): { category: FileCategory; 
     filename === "go.mod" ||
     filename === "pom.xml" ||
     filename === "build.gradle" ||
+    filename === "build.gradle.kts" ||
     filename === "requirements.txt" ||
+    filename === "setup.py" ||
+    filename === "setup.cfg" ||
     filename === "gemfile" ||
-    filename === "composer.json"
+    filename === "composer.json" ||
+    filename === "cmakelists.txt" ||
+    filename === "makefile" ||
+    filename === "mix.exs" ||
+    filename === "package.swift" ||
+    filename === "pubspec.yaml"
   ) {
     return { category: "manifest", priority: 90 };
   }

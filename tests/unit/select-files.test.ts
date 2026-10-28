@@ -15,7 +15,11 @@ describe("selectRepositoryFiles and filters", () => {
     expect(isSecretPath("cert.pem")).toBe(true);
     expect(isSecretPath("id_rsa")).toBe(true);
     expect(isSecretPath("credentials.json")).toBe(true);
+    expect(isSecretPath("client_secret.json")).toBe(true);
+    expect(isSecretPath(".secret")).toBe(true);
     expect(isSecretPath("README.md")).toBe(false);
+    expect(isSecretPath("secret-store.ts")).toBe(false);
+    expect(isSecretPath("secrets-manager.go")).toBe(false);
   });
 
   it("detects and excludes binary files", () => {

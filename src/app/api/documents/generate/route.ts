@@ -36,7 +36,10 @@ export async function POST(req: NextRequest) {
 
     const result = await generateProjectDocuments({
       url: body.url,
-      userIdea: typeof body.userIdea === "string" ? body.userIdea : undefined,
+      userIdea:
+        typeof body.userIdea === "string"
+          ? body.userIdea.trim().slice(0, 2000)
+          : undefined,
     });
 
     return NextResponse.json(result, { status: 200 });
