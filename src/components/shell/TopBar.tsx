@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import {
   Menu,
   ExternalLink,
@@ -89,9 +90,15 @@ export function TopBar({
         >
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
+            const tabHref =
+              tab.id === "chat"
+                ? `/app/s/${session.id}`
+                : `/app/s/${session.id}/${tab.id}`;
+
             return (
-              <button
+              <Link
                 key={tab.id}
+                href={tabHref}
                 role="tab"
                 aria-selected={isActive}
                 onClick={() => onTabChange(tab.id)}
@@ -104,7 +111,7 @@ export function TopBar({
               >
                 {tab.icon}
                 <span className="hidden xs:inline">{tab.label}</span>
-              </button>
+              </Link>
             );
           })}
         </nav>
@@ -139,3 +146,4 @@ export function TopBar({
     </header>
   );
 }
+

@@ -17,3 +17,4 @@ export interface UserProfileData {
 }
 
 export type SessionTab = "chat" | "overview" | "documents" | "blueprint";
+

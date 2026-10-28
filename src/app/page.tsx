@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import { CompleteAnalysisResult } from "@/lib/analysis/analyze-repository";
+import { MarketingHeader } from "@/components/layout/MarketingHeader";
+import { MarketingFooter } from "@/components/layout/MarketingFooter";
 import { OverviewPanel } from "@/components/analysis/OverviewPanel";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import { DocumentsPanel } from "@/components/documents/DocumentsPanel";
@@ -79,7 +81,10 @@ export default function HomePage() {
   }
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto">
+    <div className="min-h-screen flex flex-col bg-[#fafafa]">
+      <MarketingHeader />
+      <main className="flex-1 max-w-[1280px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="space-y-8 max-w-6xl mx-auto">
       {/* Hero / Header Section */}
       {!analysisResult && (
         <div className="space-y-4 text-center sm:text-left py-6">
@@ -293,6 +298,9 @@ export default function HomePage() {
           </div>
         </div>
       )}
+      </div>
+      </main>
+      <MarketingFooter />
     </div>
   );
 }
