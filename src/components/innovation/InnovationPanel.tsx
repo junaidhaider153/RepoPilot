@@ -18,6 +18,7 @@ import {
   Terminal,
   ShieldAlert,
 } from "lucide-react";
+import { useSessionWorkspaceOptional } from "@/context/SessionWorkspaceContext";
 
 interface InnovationPanelProps {
   repoUrl: string;
@@ -25,18 +26,26 @@ interface InnovationPanelProps {
 }
 
 export function InnovationPanel({ repoUrl, sessionId }: InnovationPanelProps) {
-  const [opportunities, setOpportunities] = useState<InnovationOpportunity[] | null>(null);
-  const [selectedOpp, setSelectedOpp] = useState<InnovationOpportunity | null>(null);
-  const [blueprintResult, setBlueprintResult] = useState<GeneratedBlueprintResult | null>(null);
+  const workspace = useSessionWorkspaceOptional();
+  const [localOpps, setLocalOpps] = useState<InnovationOpportunity[] | null>(null);
+  const [localSelectedOpp, setLocalSelectedOpp] = useState<InnovationOpportunity | null>(null);
+  const [localBlueprintResult, setLocalBlueprintResult] = useState<GeneratedBlueprintResult | null>(null);
+
+  const opportunities = workspace ? workspace.opportunities : localOpps;
+  const setOpportunities = workspace ? workspace.setOpportunities : setLocalOpps;
+  const selectedOpp = workspace ? workspace.selectedOpportunity : localSelectedOpp;
+  const setSelectedOpp = workspace ? workspace.setSelectedOpportunity : setLocalSelectedOpp;
+  const blueprintResult = workspace ? workspace.blueprintResult : localBlueprintResult;
+  const setBlueprintResult = workspace ? workspace.setBlueprintResult : setLocalBlueprintResult;
 
   const [isLoadingOpps, setIsLoadingOpps] = useState(false);
   const [isLoadingBlueprint, setIsLoadingBlueprint] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [copiedPrompt, setCopiedPrompt] = useState(false);
 
-  // Restore previous blueprint on mount if in a session
+  // Restore previous blueprint on mount if standalone without workspace provider
   useEffect(() => {
-    if (!sessionId) return;
+    if (workspace || !sessionId) return;
     let isMounted = true;
 
     fetch(`/api/sessions/${sessionId}/blueprint`)
@@ -58,7 +67,7 @@ export function InnovationPanel({ repoUrl, sessionId }: InnovationPanelProps) {
     return () => {
       isMounted = false;
     };
-  }, [sessionId]);
+  }, [sessionId, workspace, setOpportunities, setSelectedOpp, setBlueprintResult]);
 
   async function handleLoadOpportunities() {
     setIsLoadingOpps(true);

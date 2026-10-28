@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { GeneratedDocumentsResult } from "@/lib/documents/generate-documents";
 import { Copy, Check, Download, FileText, Terminal, Layers, Sparkles, Loader2, AlertCircle, RotateCcw } from "lucide-react";
+import { useSessionWorkspaceOptional } from "@/context/SessionWorkspaceContext";
 
 interface DocumentsPanelProps {
   repoUrl: string;
@@ -12,16 +13,20 @@ interface DocumentsPanelProps {
 type DocTab = "prd" | "trd" | "tdd" | "prompt";
 
 export function DocumentsPanel({ repoUrl, sessionId }: DocumentsPanelProps) {
+  const workspace = useSessionWorkspaceOptional();
   const [activeTab, setActiveTab] = useState<DocTab>("prd");
-  const [data, setData] = useState<GeneratedDocumentsResult | null>(null);
+  const [localData, setLocalData] = useState<GeneratedDocumentsResult | null>(null);
+  const data = workspace ? workspace.documentsData : localData;
+  const setData = workspace ? workspace.setDocumentsData : setLocalData;
+
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [userIdea, setUserIdea] = useState("");
   const [copiedDoc, setCopiedDoc] = useState<string | null>(null);
 
-  // Restore previously generated documents on mount if in a session
+  // Restore previously generated documents on mount if standalone without workspace provider
   useEffect(() => {
-    if (!sessionId) return;
+    if (workspace || !sessionId) return;
     let isMounted = true;
 
     fetch(`/api/sessions/${sessionId}/documents`)
@@ -73,7 +78,7 @@ export function DocumentsPanel({ repoUrl, sessionId }: DocumentsPanelProps) {
     return () => {
       isMounted = false;
     };
-  }, [sessionId, repoUrl]);
+  }, [sessionId, repoUrl, workspace, setData]);
 
   async function handleGenerate() {
     setIsLoading(true);

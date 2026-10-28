@@ -18,6 +18,7 @@ import { FileDrawer } from "./FileDrawer";
 import { ProgressStepper, StepItem } from "./ProgressStepper";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { useToast } from "@/components/ui/Toast";
+import { useSessionWorkspaceOptional } from "@/context/SessionWorkspaceContext";
 
 export interface ChatMessageItem {
   id: string;
@@ -47,7 +48,11 @@ const DEFAULT_STEPS: StepItem[] = [
 ];
 
 export function ChatPanel({ repoUrl, sessionId }: ChatPanelProps) {
-  const [messages, setMessages] = useState<ChatMessageItem[]>([]);
+  const workspace = useSessionWorkspaceOptional();
+  const [localMessages, setLocalMessages] = useState<ChatMessageItem[]>([]);
+  const messages = workspace ? workspace.messages : localMessages;
+  const setMessages = workspace ? workspace.setMessages : setLocalMessages;
+
   const [inputQuestion, setInputQuestion] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -71,9 +76,9 @@ export function ChatPanel({ repoUrl, sessionId }: ChatPanelProps) {
 
   const { toast } = useToast();
 
-  // Load persisted messages
+  // Load persisted messages if standalone without workspace provider
   useEffect(() => {
-    if (!sessionId) return;
+    if (workspace || !sessionId) return;
     let isMounted = true;
 
     fetch(`/api/sessions/${sessionId}/messages`)
@@ -105,7 +110,7 @@ export function ChatPanel({ repoUrl, sessionId }: ChatPanelProps) {
     return () => {
       isMounted = false;
     };
-  }, [sessionId]);
+  }, [sessionId, workspace, setMessages]);
 
   // Handle scroll detection for "Jump to latest"
   const handleScroll = useCallback(() => {

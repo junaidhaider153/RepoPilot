@@ -18,32 +18,6 @@ const memoryMessages = new Map<string, DbMessage[]>();
 const memoryDocuments = new Map<string, DbDocument[]>();
 const memoryBlueprints = new Map<string, DbBlueprint>();
 
-// Seed sample sessions in fallback memory store
-const nowIso = new Date().toISOString();
-memorySessions.set("s-1", {
-  id: "s-1",
-  user_id: "u-demo-1",
-  repo_url: "https://github.com/github/spec-kit",
-  owner: "github",
-  repo: "spec-kit",
-  title: "Spec-Kit Core Architecture",
-  pinned: true,
-  created_at: nowIso,
-  updated_at: nowIso,
-});
-
-memorySessions.set("s-2", {
-  id: "s-2",
-  user_id: "u-demo-1",
-  repo_url: "https://github.com/facebook/react",
-  owner: "facebook",
-  repo: "react",
-  title: "React Concurrent Runtime",
-  pinned: false,
-  created_at: nowIso,
-  updated_at: nowIso,
-});
-
 export async function getUserSessions(userId: string): Promise<DbSession[]> {
   if (isSupabaseConfigured()) {
     try {
@@ -64,7 +38,7 @@ export async function getUserSessions(userId: string): Promise<DbSession[]> {
 
   // Fallback store
   return Array.from(memorySessions.values())
-    .filter((s) => s.user_id === userId || userId === "u-demo-1")
+    .filter((s) => s.user_id === userId)
     .sort((a, b) => {
       if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
       return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
@@ -646,7 +620,7 @@ export async function deleteAllUserSessions(userId: string): Promise<boolean> {
 
   // Cascade cleanup in memory
   const userSessionIds = Array.from(memorySessions.values())
-    .filter((s) => s.user_id === userId || (userId === "u-demo-1" && s.id.startsWith("s-")))
+    .filter((s) => s.user_id === userId)
     .map((s) => s.id);
 
   for (const sId of userSessionIds) {

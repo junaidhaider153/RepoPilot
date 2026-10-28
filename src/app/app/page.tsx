@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSessionContext } from "@/context/SessionContext";
+import { useAuth } from "@/context/AuthContext";
 import { CompleteAnalysisResult } from "@/lib/analysis/analyze-repository";
 import {
   Search,
@@ -25,7 +26,8 @@ const SAMPLE_REPOS = [
 
 export default function NewSessionPage() {
   const router = useRouter();
-  const { user, createSession } = useSessionContext();
+  const { user } = useAuth();
+  const { createSession } = useSessionContext();
 
   const [urlInput, setUrlInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -47,10 +49,45 @@ export default function NewSessionPage() {
     setStatusMessage("Validating repository and fetching structure...");
 
     try {
+      // 1. Parse repository owner and name
+      const cleaned = rawUrl.trim().replace(/\/+$/, "").replace(/\.git$/, "");
+      const parts = cleaned.split("/");
+      const repo = parts[parts.length - 1] || "repository";
+      const owner = parts[parts.length - 2] || "owner";
+      const title = `${owner}/${repo}`;
+
+      // 2. Persist session on server first
+      let serverSessionId: string | undefined;
+      try {
+        const sessRes = await fetch("/api/sessions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            repoUrl: rawUrl,
+            owner,
+            repo,
+            title,
+          }),
+        });
+
+        if (sessRes.ok) {
+          const sessData = await sessRes.json();
+          if (sessData.session?.id) {
+            serverSessionId = sessData.session.id;
+          }
+        }
+      } catch {
+        // Fall back to client session ID if server unreachable
+      }
+
+      // 3. Analyze codebase with sessionId so server caches the snapshot
       const res = await fetch("/api/repository/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: rawUrl }),
+        body: JSON.stringify({
+          url: rawUrl,
+          sessionId: serverSessionId,
+        }),
       });
 
       const data = await res.json();
@@ -59,10 +96,10 @@ export default function NewSessionPage() {
       }
 
       const analysisResult = data as CompleteAnalysisResult;
-      const newSessionId = createSession(rawUrl, analysisResult);
+      const targetSessionId = createSession(rawUrl, analysisResult, serverSessionId, title);
 
       // Navigate directly into the session workspace
-      router.push(`/app/s/${newSessionId}`);
+      router.push(`/app/s/${targetSessionId}`);
     } catch (err: unknown) {
       setErrorMessage(
         err instanceof Error

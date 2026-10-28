@@ -2,11 +2,12 @@
 
 import React, { use, useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { useSessionContext } from "@/context/SessionContext";
+import { useSessionContext, ExtendedSessionItem } from "@/context/SessionContext";
+import { SessionWorkspaceProvider } from "@/context/SessionWorkspaceContext";
 import { TopBar } from "@/components/shell/TopBar";
 import { SessionTab } from "@/components/shell/types";
 import { Button } from "@/components/ui/Button";
-import { AlertCircle, ArrowLeft } from "lucide-react";
+import { AlertCircle, ArrowLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
 
 export default function SessionLayout({
@@ -21,18 +22,65 @@ export default function SessionLayout({
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
-  const { getSession, sessions, updateSession } = useSessionContext();
+  const { getSession, sessions, updateSession, addOrUpdateSession } = useSessionContext();
 
-  const [session, setSession] = useState(() => getSession(sessionId));
+  const [session, setSession] = useState<ExtendedSessionItem | undefined>(() => getSession(sessionId));
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isFetchingSession, setIsFetchingSession] = useState(!session);
+  const [hasNotFound, setHasNotFound] = useState(false);
 
   // Sync session when store updates
   useEffect(() => {
     const s = getSession(sessionId);
     if (s) {
       setSession(s);
+      setIsFetchingSession(false);
     }
   }, [sessionId, getSession, sessions]);
+
+  // If not found in memory, try fetching from server before showing 404
+  useEffect(() => {
+    if (session) return;
+    let isMounted = true;
+
+    setIsFetchingSession(true);
+    fetch(`/api/sessions/${sessionId}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Not found");
+        return res.json();
+      })
+      .then((data) => {
+        if (!isMounted) return;
+        if (data?.session) {
+          const s = data.session;
+          const extended: ExtendedSessionItem = {
+            id: s.id,
+            repoUrl: s.repo_url,
+            owner: s.owner,
+            repo: s.repo,
+            title: s.title,
+            pinned: s.pinned,
+            createdAt: s.created_at,
+            updatedAt: s.updated_at,
+            analysisResult: data.snapshot?.analysis_json,
+          };
+          addOrUpdateSession(extended);
+          setSession(extended);
+        } else {
+          setHasNotFound(true);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setHasNotFound(true);
+      })
+      .finally(() => {
+        if (isMounted) setIsFetchingSession(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [sessionId, session, addOrUpdateSession]);
 
   // Determine active tab from pathname
   const activeTab: SessionTab = pathname.endsWith("/overview")
@@ -104,7 +152,16 @@ Exported At: ${new Date().toISOString()}
     });
   }
 
-  if (!session) {
+  if (isFetchingSession && !session) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-3">
+        <Loader2 className="w-6 h-6 animate-spin text-[#171717]" />
+        <p className="text-xs font-mono text-[#666666]">Loading session workspace...</p>
+      </div>
+    );
+  }
+
+  if (!session || hasNotFound) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4">
         <div className="p-3 rounded-full bg-[#fef2f2] text-[#dc2626]">
@@ -125,29 +182,29 @@ Exported At: ${new Date().toISOString()}
   }
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-hidden">
-      {/* 48px Top Bar */}
-      <TopBar
-        session={session}
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-        onOpenMobileMenu={() => {
-          // Triggers mobile menu in AppShellContainer
-          const mobileTrigger = document.querySelector<HTMLButtonElement>(
-            '[aria-label="Open sidebar menu"]'
-          );
-          mobileTrigger?.click();
-        }}
-        onExportAll={handleExportAll}
-        onRefresh={handleRefresh}
-        isRefreshing={isRefreshing}
-      />
+    <SessionWorkspaceProvider sessionId={session.id} repoUrl={session.repoUrl}>
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
+        {/* 48px Top Bar */}
+        <TopBar
+          session={session}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          onOpenMobileMenu={() => {
+            const mobileTrigger = document.querySelector<HTMLButtonElement>(
+              '[aria-label="Open sidebar menu"]'
+            );
+            mobileTrigger?.click();
+          }}
+          onExportAll={handleExportAll}
+          onRefresh={handleRefresh}
+          isRefreshing={isRefreshing}
+        />
 
-      {/* Tab Viewport */}
-      <div className="flex-1 overflow-y-auto bg-[#fafafa]">
-        {children}
+        {/* Tab Viewport */}
+        <div className="flex-1 overflow-y-auto bg-[#fafafa]">
+          {children}
+        </div>
       </div>
-    </div>
+    </SessionWorkspaceProvider>
   );
 }
-
