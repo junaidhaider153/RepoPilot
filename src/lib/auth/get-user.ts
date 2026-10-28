@@ -9,6 +9,11 @@ export interface AuthenticatedUser {
 
 export async function getAuthUser(): Promise<AuthenticatedUser | null> {
   if (!isSupabaseConfigured()) {
+    // Fail closed in production when Supabase is not configured
+    if (process.env.NODE_ENV === "production" && process.env.DEMO_MODE !== "true") {
+      return null;
+    }
+
     // In local demo / test mode, return demo user
     return {
       id: "u-demo-1",

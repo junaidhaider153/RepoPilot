@@ -7,11 +7,12 @@ import { useAuth } from "@/context/AuthContext";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Eye, EyeOff, AlertCircle, Github } from "lucide-react";
+import { sanitizeRedirectPath } from "@/lib/security/redirect";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const nextDestination = searchParams.get("next") || "/app";
+  const nextDestination = sanitizeRedirectPath(searchParams.get("next"));
 
   const { signInWithEmail, signInWithOAuth } = useAuth();
 

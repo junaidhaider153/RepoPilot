@@ -283,3 +283,4 @@ export function CommandPalette({
     </div>
   );
 }
+

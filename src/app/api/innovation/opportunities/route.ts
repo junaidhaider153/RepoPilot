@@ -4,7 +4,7 @@ import { BoundedContext, GitHubIngestionError } from "@/lib/github/types";
 import { AIProviderError } from "@/lib/ai/types";
 import { checkRateLimit, getRateLimitIdentifier } from "@/lib/security/rate-limiter";
 import { getAuthUser } from "@/lib/auth/get-user";
-import { getRepoSnapshot, upsertSessionBlueprint } from "@/lib/persistence/store";
+import { getRepoSnapshot, upsertSessionBlueprint, getSessionById } from "@/lib/persistence/store";
 
 export async function POST(req: NextRequest) {
   try {
@@ -38,6 +38,23 @@ export async function POST(req: NextRequest) {
     }
 
     const sessionId = typeof body.sessionId === "string" ? body.sessionId.trim() : null;
+
+    // Verify ownership if sessionId is provided
+    if (sessionId) {
+      if (!user) {
+        return NextResponse.json(
+          { error: { code: "UNAUTHORIZED", message: "Sign in to access session blueprints." } },
+          { status: 401 }
+        );
+      }
+      const session = await getSessionById(user.id, sessionId);
+      if (!session) {
+        return NextResponse.json(
+          { error: { code: "SESSION_NOT_FOUND", message: "Session not found or unauthorized access." } },
+          { status: 404 }
+        );
+      }
+    }
 
     let cachedContext: BoundedContext | undefined;
     if (sessionId) {

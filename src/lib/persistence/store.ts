@@ -94,7 +94,7 @@ export async function getSessionById(
 
   const s = memorySessions.get(sessionId);
   if (!s) return null;
-  if (s.user_id !== userId && userId !== "u-demo-1") return null;
+  if (s.user_id !== userId) return null;
   return s;
 }
 

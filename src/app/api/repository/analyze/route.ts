@@ -4,7 +4,7 @@ import { GitHubIngestionError } from "@/lib/github/types";
 import { AIProviderError } from "@/lib/ai/types";
 import { checkRateLimit, getRateLimitIdentifier } from "@/lib/security/rate-limiter";
 import { getAuthUser } from "@/lib/auth/get-user";
-import { upsertRepoSnapshot } from "@/lib/persistence/store";
+import { upsertRepoSnapshot, getSessionById } from "@/lib/persistence/store";
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,11 +37,28 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const sessionId = typeof body.sessionId === "string" ? body.sessionId.trim() : null;
+    if (sessionId) {
+      if (!user) {
+        return NextResponse.json(
+          { error: { code: "UNAUTHORIZED", message: "Sign in to save repository snapshot." } },
+          { status: 401 }
+        );
+      }
+      const session = await getSessionById(user.id, sessionId);
+      if (!session) {
+        return NextResponse.json(
+          { error: { code: "SESSION_NOT_FOUND", message: "Session not found or unauthorized access." } },
+          { status: 404 }
+        );
+      }
+    }
+
     const result = await analyzeRepository(body.url);
 
     // If sessionId provided, cache the snapshot
-    if (typeof body.sessionId === "string" && body.sessionId.trim().length > 0) {
-      await upsertRepoSnapshot(body.sessionId, {
+    if (sessionId) {
+      await upsertRepoSnapshot(sessionId, {
         defaultBranch: result.repository.defaultBranch || "main",
         selectedPaths: result.analyzedFiles.map((f) => f.path),
         analysisResult: result,
