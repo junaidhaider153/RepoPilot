@@ -207,3 +207,4 @@ export default function NewSessionPage() {
     </div>
   );
 }
+

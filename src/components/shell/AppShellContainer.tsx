@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { MobileDrawer } from "./MobileDrawer";
 import { useSessionContext } from "@/context/SessionContext";
+import { useAuth } from "@/context/AuthContext";
 import { ToastProvider, useToast } from "@/components/ui/Toast";
 
 function AppShellInner({ children }: { children: React.ReactNode }) {
@@ -13,13 +14,20 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
   const {
     sessions,
-    user,
+    user: defaultUser,
     createSession,
     renameSession,
     togglePinSession,
     deleteSession,
     restoreSession,
   } = useSessionContext();
+  const { user: authUser, signOut } = useAuth();
+  const currentUser = authUser || defaultUser;
+
+  const handleSignOut = useCallback(async () => {
+    await signOut();
+    router.push("/login");
+  }, [signOut, router]);
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -138,9 +146,10 @@ Exported At: ${new Date().toISOString()}
           onTogglePinSession={togglePinSession}
           onDeleteSession={handleDeleteSession}
           onExportSession={handleExportSession}
-          user={user}
+          user={currentUser}
           isCollapsed={isCollapsed}
           onToggleCollapse={() => setIsCollapsed((prev) => !prev)}
+          onSignOut={handleSignOut}
         />
       </div>
 
@@ -161,9 +170,10 @@ Exported At: ${new Date().toISOString()}
           onTogglePinSession={togglePinSession}
           onDeleteSession={handleDeleteSession}
           onExportSession={handleExportSession}
-          user={user}
+          user={currentUser}
           isCollapsed={false}
           onToggleCollapse={() => {}}
+          onSignOut={handleSignOut}
         />
       </MobileDrawer>
 

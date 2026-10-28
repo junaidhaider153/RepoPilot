@@ -35,6 +35,7 @@ export interface SidebarProps {
   user?: UserProfileData;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
+  onSignOut?: () => void;
   className?: string;
 }
 
@@ -54,6 +55,7 @@ export function Sidebar({
   },
   isCollapsed,
   onToggleCollapse,
+  onSignOut,
   className,
 }: SidebarProps) {
   const [searchQuery, setSearchQuery] = useState("");
@@ -439,7 +441,9 @@ export function Sidebar({
                 label: "Log out",
                 icon: <LogOut className="w-3.5 h-3.5" />,
                 danger: true,
-                onClick: () => {},
+                onClick: () => {
+                  onSignOut?.();
+                },
               },
             ]}
           />
