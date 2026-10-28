@@ -183,3 +183,4 @@ export function useSessionWorkspace() {
 export function useSessionWorkspaceOptional() {
   return useContext(SessionWorkspaceContext);
 }
+

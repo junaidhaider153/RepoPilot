@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { GeneratedDocumentsResult } from "@/lib/documents/generate-documents";
 import { Copy, Check, Download, FileText, Terminal, Layers, Sparkles, Loader2, AlertCircle, RotateCcw } from "lucide-react";
 import { useSessionWorkspaceOptional } from "@/context/SessionWorkspaceContext";
+import { useToast } from "@/components/ui/Toast";
 
 interface DocumentsPanelProps {
   repoUrl: string;
@@ -13,6 +14,7 @@ interface DocumentsPanelProps {
 type DocTab = "prd" | "trd" | "tdd" | "prompt";
 
 export function DocumentsPanel({ repoUrl, sessionId }: DocumentsPanelProps) {
+  const { toast } = useToast();
   const workspace = useSessionWorkspaceOptional();
   const [activeTab, setActiveTab] = useState<DocTab>("prd");
   const [localData, setLocalData] = useState<GeneratedDocumentsResult | null>(null);
@@ -102,7 +104,13 @@ export function DocumentsPanel({ repoUrl, sessionId }: DocumentsPanelProps) {
 
       setData(resData as GeneratedDocumentsResult);
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Error connecting to server.");
+      const msg = err instanceof Error ? err.message : "Error connecting to server.";
+      setErrorMsg(msg);
+      toast({
+        title: "Could not save document",
+        message: msg,
+        type: "error",
+      });
     } finally {
       setIsLoading(false);
     }

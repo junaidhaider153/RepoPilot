@@ -300,7 +300,7 @@ const auth = true;
       fireEvent.keyDown(textarea, { key: "Enter" });
 
       await waitFor(() => {
-        expect(screen.getByText("AI rate limit reached. Please wait 10s.")).toBeDefined();
+        expect(screen.getAllByText("AI rate limit reached. Please wait 10s.")[0]).toBeDefined();
       });
 
       const retryBtn = screen.getByRole("button", { name: /Retry/i });

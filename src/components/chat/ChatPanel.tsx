@@ -242,6 +242,11 @@ export function ChatPanel({ repoUrl, sessionId }: ChatPanelProps) {
         const msg = err instanceof Error ? err.message : "Error contacting server.";
         setErrorMsg(msg);
         setLastFailedQuestion(q);
+        toast({
+          title: "Could not save message",
+          message: msg,
+          type: "error",
+        });
       }
     } finally {
       setIsLoading(false);

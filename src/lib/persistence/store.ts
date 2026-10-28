@@ -10,6 +10,18 @@ import {
 } from "./types";
 import { CompleteAnalysisResult } from "@/lib/analysis/analyze-repository";
 
+// Helper for generating UUID in mock/memory fallback
+function generateUuid(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 // In-memory fallback stores for offline/mock development and tests
 const memoryProfiles = new Map<string, DbProfile>();
 const memorySessions = new Map<string, DbSession>();
@@ -18,22 +30,20 @@ const memoryMessages = new Map<string, DbMessage[]>();
 const memoryDocuments = new Map<string, DbDocument[]>();
 const memoryBlueprints = new Map<string, DbBlueprint>();
 
+// ---------------- Sessions ----------------
+
 export async function getUserSessions(userId: string): Promise<DbSession[]> {
   if (isSupabaseConfigured()) {
-    try {
-      const supabase = await createServerSupabase();
-      const { data, error } = await supabase
-        .from("sessions")
-        .select("*")
-        .eq("user_id", userId)
-        .order("pinned", { ascending: false })
-        .order("updated_at", { ascending: false });
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase
+      .from("sessions")
+      .select("*")
+      .eq("user_id", userId)
+      .order("pinned", { ascending: false })
+      .order("updated_at", { ascending: false });
 
-      if (error) throw error;
-      return (data as DbSession[]) || [];
-    } catch {
-      // Fall through to memory store on network error
-    }
+    if (error) throw error;
+    return (data as DbSession[]) || [];
   }
 
   // Fallback store
@@ -50,20 +60,19 @@ export async function getSessionById(
   sessionId: string
 ): Promise<DbSession | null> {
   if (isSupabaseConfigured()) {
-    try {
-      const supabase = await createServerSupabase();
-      const { data, error } = await supabase
-        .from("sessions")
-        .select("*")
-        .eq("id", sessionId)
-        .eq("user_id", userId)
-        .single();
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase
+      .from("sessions")
+      .select("*")
+      .eq("id", sessionId)
+      .eq("user_id", userId)
+      .single();
 
-      if (error) return null;
-      return data as DbSession;
-    } catch {
-      // Fall through to memory store
+    if (error) {
+      if ((error as any).code === "PGRST116") return null;
+      throw error;
     }
+    return data as DbSession;
   }
 
   const s = memorySessions.get(sessionId);
@@ -95,19 +104,15 @@ export async function insertSession(
   };
 
   if (isSupabaseConfigured()) {
-    try {
-      const supabase = await createServerSupabase();
-      const { data, error } = await supabase
-        .from("sessions")
-        .insert(newSession)
-        .select()
-        .single();
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase
+      .from("sessions")
+      .insert(newSession)
+      .select()
+      .single();
 
-      if (error) throw error;
-      return data as DbSession;
-    } catch {
-      // Fall through to memory store
-    }
+    if (error) throw error;
+    return data as DbSession;
   }
 
   memorySessions.set(newSession.id, newSession);
@@ -122,21 +127,20 @@ export async function updateSessionData(
   const updatedAt = new Date().toISOString();
 
   if (isSupabaseConfigured()) {
-    try {
-      const supabase = await createServerSupabase();
-      const { data, error } = await supabase
-        .from("sessions")
-        .update({ ...updates, updated_at: updatedAt })
-        .eq("id", sessionId)
-        .eq("user_id", userId)
-        .select()
-        .single();
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase
+      .from("sessions")
+      .update({ ...updates, updated_at: updatedAt })
+      .eq("id", sessionId)
+      .eq("user_id", userId)
+      .select()
+      .single();
 
-      if (error) return null;
-      return data as DbSession;
-    } catch {
-      // Fall through to memory store
+    if (error) {
+      if ((error as any).code === "PGRST116") return null;
+      throw error;
     }
+    return data as DbSession;
   }
 
   const existing = memorySessions.get(sessionId);
@@ -155,19 +159,15 @@ export async function deleteSessionData(
   sessionId: string
 ): Promise<boolean> {
   if (isSupabaseConfigured()) {
-    try {
-      const supabase = await createServerSupabase();
-      const { error } = await supabase
-        .from("sessions")
-        .delete()
-        .eq("id", sessionId)
-        .eq("user_id", userId);
+    const supabase = await createServerSupabase();
+    const { error } = await supabase
+      .from("sessions")
+      .delete()
+      .eq("id", sessionId)
+      .eq("user_id", userId);
 
-      if (error) return false;
-      return true;
-    } catch {
-      // Fall through to memory store
-    }
+    if (error) throw error;
+    return true;
   }
 
   const existing = memorySessions.get(sessionId);
@@ -184,19 +184,18 @@ export async function deleteSessionData(
 
 export async function getRepoSnapshot(sessionId: string): Promise<DbRepoSnapshot | null> {
   if (isSupabaseConfigured()) {
-    try {
-      const supabase = await createServerSupabase();
-      const { data, error } = await supabase
-        .from("repo_snapshots")
-        .select("*")
-        .eq("session_id", sessionId)
-        .single();
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase
+      .from("repo_snapshots")
+      .select("*")
+      .eq("session_id", sessionId)
+      .single();
 
-      if (error) return null;
-      return data as DbRepoSnapshot;
-    } catch {
-      // Fall through
+    if (error) {
+      if ((error as any).code === "PGRST116") return null;
+      throw error;
     }
+    return data as DbRepoSnapshot;
   }
 
   return memorySnapshots.get(sessionId) || null;
@@ -211,41 +210,39 @@ export async function upsertRepoSnapshot(
     coverageNotes: string[];
   }
 ): Promise<DbRepoSnapshot> {
+  const fetchedAt = new Date().toISOString();
+
+  if (isSupabaseConfigured()) {
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase
+      .from("repo_snapshots")
+      .upsert(
+        {
+          session_id: sessionId,
+          default_branch: snapshot.defaultBranch,
+          selected_paths: snapshot.selectedPaths,
+          analysis_json: snapshot.analysisResult,
+          coverage_notes: snapshot.coverageNotes,
+          fetched_at: fetchedAt,
+        },
+        { onConflict: "session_id" }
+      )
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as DbRepoSnapshot;
+  }
+
   const record: DbRepoSnapshot = {
-    id: `snap-${Date.now()}`,
+    id: generateUuid(),
     session_id: sessionId,
     default_branch: snapshot.defaultBranch,
     selected_paths: snapshot.selectedPaths,
     analysis_json: snapshot.analysisResult,
     coverage_notes: snapshot.coverageNotes,
-    fetched_at: new Date().toISOString(),
+    fetched_at: fetchedAt,
   };
-
-  if (isSupabaseConfigured()) {
-    try {
-      const supabase = await createServerSupabase();
-      const { data, error } = await supabase
-        .from("repo_snapshots")
-        .upsert(
-          {
-            session_id: sessionId,
-            default_branch: record.default_branch,
-            selected_paths: record.selected_paths,
-            analysis_json: record.analysis_json,
-            coverage_notes: record.coverage_notes,
-            fetched_at: record.fetched_at,
-          },
-          { onConflict: "session_id" }
-        )
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as DbRepoSnapshot;
-    } catch {
-      // Fall through
-    }
-  }
 
   memorySnapshots.set(sessionId, record);
   return record;
@@ -255,19 +252,15 @@ export async function upsertRepoSnapshot(
 
 export async function getSessionMessages(sessionId: string): Promise<DbMessage[]> {
   if (isSupabaseConfigured()) {
-    try {
-      const supabase = await createServerSupabase();
-      const { data, error } = await supabase
-        .from("messages")
-        .select("*")
-        .eq("session_id", sessionId)
-        .order("created_at", { ascending: true });
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase
+      .from("messages")
+      .select("*")
+      .eq("session_id", sessionId)
+      .order("created_at", { ascending: true });
 
-      if (error) return [];
-      return (data as DbMessage[]) || [];
-    } catch {
-      // Fall through
-    }
+    if (error) throw error;
+    return (data as DbMessage[]) || [];
   }
 
   return memoryMessages.get(sessionId) || [];
@@ -282,31 +275,37 @@ export async function insertSessionMessage(
     confidence?: string;
   }
 ): Promise<DbMessage> {
+  const createdAt = new Date().toISOString();
+
+  if (isSupabaseConfigured()) {
+    const supabase = await createServerSupabase();
+    // Do NOT pass manual non-UUID id; let Postgres gen_random_uuid() generate it
+    const { data, error } = await supabase
+      .from("messages")
+      .insert({
+        session_id: sessionId,
+        role: message.role,
+        content: message.content,
+        evidence_json: (message.evidence || []) as any,
+        confidence: message.confidence || "medium",
+        created_at: createdAt,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as DbMessage;
+  }
+
   const newMsg: DbMessage = {
-    id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    id: generateUuid(),
     session_id: sessionId,
     role: message.role,
     content: message.content,
     evidence_json: (message.evidence || []) as any,
     confidence: message.confidence || "medium",
-    created_at: new Date().toISOString(),
+    created_at: createdAt,
   };
-
-  if (isSupabaseConfigured()) {
-    try {
-      const supabase = await createServerSupabase();
-      const { data, error } = await supabase
-        .from("messages")
-        .insert(newMsg)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as DbMessage;
-    } catch {
-      // Fall through
-    }
-  }
 
   const existing = memoryMessages.get(sessionId) || [];
   existing.push(newMsg);
@@ -318,18 +317,14 @@ export async function insertSessionMessage(
 
 export async function getSessionDocuments(sessionId: string): Promise<DbDocument[]> {
   if (isSupabaseConfigured()) {
-    try {
-      const supabase = await createServerSupabase();
-      const { data, error } = await supabase
-        .from("documents")
-        .select("*")
-        .eq("session_id", sessionId);
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase
+      .from("documents")
+      .select("*")
+      .eq("session_id", sessionId);
 
-      if (error) return [];
-      return (data as DbDocument[]) || [];
-    } catch {
-      // Fall through
-    }
+    if (error) throw error;
+    return (data as DbDocument[]) || [];
   }
 
   return memoryDocuments.get(sessionId) || [];
@@ -343,30 +338,42 @@ export async function upsertSessionDocument(
     version?: number;
   }
 ): Promise<DbDocument> {
+  const createdAt = new Date().toISOString();
+
+  if (isSupabaseConfigured()) {
+    const supabase = await createServerSupabase();
+    // Delete existing document of this kind for the session to prevent stale duplicates
+    await supabase
+      .from("documents")
+      .delete()
+      .eq("session_id", sessionId)
+      .eq("kind", doc.kind);
+
+    // Omit manual string id; let Postgres gen_random_uuid() generate it
+    const { data, error } = await supabase
+      .from("documents")
+      .insert({
+        session_id: sessionId,
+        kind: doc.kind,
+        content_md: doc.contentMd,
+        version: doc.version || 1,
+        created_at: createdAt,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as DbDocument;
+  }
+
   const newDoc: DbDocument = {
-    id: `doc-${Date.now()}`,
+    id: generateUuid(),
     session_id: sessionId,
     kind: doc.kind,
     content_md: doc.contentMd,
     version: doc.version || 1,
-    created_at: new Date().toISOString(),
+    created_at: createdAt,
   };
-
-  if (isSupabaseConfigured()) {
-    try {
-      const supabase = await createServerSupabase();
-      const { data, error } = await supabase
-        .from("documents")
-        .insert(newDoc)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as DbDocument;
-    } catch {
-      // Fall through
-    }
-  }
 
   const existing = memoryDocuments.get(sessionId) || [];
   const filtered = existing.filter((d) => d.kind !== doc.kind);
@@ -408,35 +415,6 @@ export async function getUserLibraryDocuments(userId: string): Promise<LibraryDo
     }
   }
 
-  // Supply starter sample documents for demonstration if empty
-  if (items.length === 0 && sessions.length > 0) {
-    const firstSession = sessions[0];
-    items.push(
-      {
-        id: `lib-sample-prd-${firstSession.id}`,
-        sessionId: firstSession.id,
-        repoUrl: firstSession.repo_url,
-        repoName: `${firstSession.owner}/${firstSession.repo}`,
-        sessionTitle: firstSession.title,
-        kind: "prd",
-        contentMd: "# Product Requirements Document\n\n## Overview\nProduction specification package.",
-        version: 1,
-        createdAt: firstSession.created_at,
-      },
-      {
-        id: `lib-sample-trd-${firstSession.id}`,
-        sessionId: firstSession.id,
-        repoUrl: firstSession.repo_url,
-        repoName: `${firstSession.owner}/${firstSession.repo}`,
-        sessionTitle: firstSession.title,
-        kind: "trd",
-        contentMd: "# Technical Requirements Document\n\n## Architecture\nModular Next.js services.",
-        version: 1,
-        createdAt: firstSession.created_at,
-      }
-    );
-  }
-
   return items.sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
@@ -444,12 +422,10 @@ export async function getUserLibraryDocuments(userId: string): Promise<LibraryDo
 
 export async function deleteLibraryDocument(userId: string, documentId: string): Promise<boolean> {
   if (isSupabaseConfigured()) {
-    try {
-      const supabase = await createServerSupabase();
-      await supabase.from("documents").delete().eq("id", documentId);
-    } catch {
-      // Fall through
-    }
+    const supabase = await createServerSupabase();
+    const { error } = await supabase.from("documents").delete().eq("id", documentId);
+    if (error) throw error;
+    return true;
   }
 
   for (const [sId, docs] of memoryDocuments.entries()) {
@@ -467,19 +443,18 @@ export async function deleteLibraryDocument(userId: string, documentId: string):
 
 export async function getSessionBlueprint(sessionId: string): Promise<DbBlueprint | null> {
   if (isSupabaseConfigured()) {
-    try {
-      const supabase = await createServerSupabase();
-      const { data, error } = await supabase
-        .from("blueprints")
-        .select("*")
-        .eq("session_id", sessionId)
-        .single();
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase
+      .from("blueprints")
+      .select("*")
+      .eq("session_id", sessionId)
+      .single();
 
-      if (error) return null;
-      return data as DbBlueprint;
-    } catch {
-      // Fall through
+    if (error) {
+      if ((error as any).code === "PGRST116") return null;
+      throw error;
     }
+    return data as DbBlueprint;
   }
 
   return memoryBlueprints.get(sessionId) || null;
@@ -493,39 +468,38 @@ export async function upsertSessionBlueprint(
     planJson?: unknown;
   }
 ): Promise<DbBlueprint> {
+  const createdAt = new Date().toISOString();
+
+  if (isSupabaseConfigured()) {
+    const supabase = await createServerSupabase();
+    // Do NOT pass manual non-UUID id; let Postgres gen_random_uuid() generate it
+    const { data, error } = await supabase
+      .from("blueprints")
+      .upsert(
+        {
+          session_id: sessionId,
+          opportunities_json: blueprint.opportunities,
+          selected_index: blueprint.selectedIndex,
+          plan_json: blueprint.planJson || null,
+          created_at: createdAt,
+        },
+        { onConflict: "session_id" }
+      )
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data as DbBlueprint;
+  }
+
   const record: DbBlueprint = {
-    id: `bp-${Date.now()}`,
+    id: generateUuid(),
     session_id: sessionId,
     opportunities_json: blueprint.opportunities,
     selected_index: blueprint.selectedIndex,
     plan_json: blueprint.planJson || null,
-    created_at: new Date().toISOString(),
+    created_at: createdAt,
   };
-
-  if (isSupabaseConfigured()) {
-    try {
-      const supabase = await createServerSupabase();
-      const { data, error } = await supabase
-        .from("blueprints")
-        .upsert(
-          {
-            session_id: sessionId,
-            opportunities_json: record.opportunities_json,
-            selected_index: record.selected_index,
-            plan_json: record.plan_json,
-            created_at: record.created_at,
-          },
-          { onConflict: "session_id" }
-        )
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as DbBlueprint;
-    } catch {
-      // Fall through
-    }
-  }
 
   memoryBlueprints.set(sessionId, record);
   return record;
@@ -535,20 +509,17 @@ export async function upsertSessionBlueprint(
 
 export async function getUserProfile(userId: string): Promise<DbProfile> {
   if (isSupabaseConfigured()) {
-    try {
-      const supabase = await createServerSupabase();
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", userId)
-        .single();
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .single();
 
-      if (!error && data) {
-        return data as DbProfile;
-      }
-    } catch {
-      // Fall through
+    if (error && (error as any).code !== "PGRST116") {
+      throw error;
     }
+    if (data) return data as DbProfile;
   }
 
   const existing = memoryProfiles.get(userId);
@@ -576,25 +547,19 @@ export async function updateUserProfile(
   };
 
   if (isSupabaseConfigured()) {
-    try {
-      const supabase = await createServerSupabase();
-      const { data, error } = await supabase
-        .from("profiles")
-        .upsert({
-          id: userId,
-          display_name: updated.display_name,
-          avatar_url: updated.avatar_url,
-        })
-        .select()
-        .single();
+    const supabase = await createServerSupabase();
+    const { data, error } = await supabase
+      .from("profiles")
+      .upsert({
+        id: userId,
+        display_name: updated.display_name,
+        avatar_url: updated.avatar_url,
+      })
+      .select()
+      .single();
 
-      if (!error && data) {
-        memoryProfiles.set(userId, { ...updated, ...data });
-        return { ...updated, ...data };
-      }
-    } catch {
-      // Fall through
-    }
+    if (error) throw error;
+    return { ...updated, ...data };
   }
 
   memoryProfiles.set(userId, updated);
@@ -605,17 +570,14 @@ export async function updateUserProfile(
 
 export async function deleteAllUserSessions(userId: string): Promise<boolean> {
   if (isSupabaseConfigured()) {
-    try {
-      const supabase = await createServerSupabase();
-      const { error } = await supabase
-        .from("sessions")
-        .delete()
-        .eq("user_id", userId);
+    const supabase = await createServerSupabase();
+    const { error } = await supabase
+      .from("sessions")
+      .delete()
+      .eq("user_id", userId);
 
-      if (error) throw error;
-    } catch {
-      // Fall through to memory cleanup
-    }
+    if (error) throw error;
+    return true;
   }
 
   // Cascade cleanup in memory
@@ -635,17 +597,13 @@ export async function deleteAllUserSessions(userId: string): Promise<boolean> {
 }
 
 export async function deleteUserAccount(userId: string): Promise<boolean> {
-  // First delete all sessions and cascading relations
   await deleteAllUserSessions(userId);
 
   if (isSupabaseConfigured()) {
-    try {
-      const supabase = await createServerSupabase();
-      // Deleting from profiles cascades to any remaining user rows
-      await supabase.from("profiles").delete().eq("id", userId);
-    } catch {
-      // Fall through
-    }
+    const supabase = await createServerSupabase();
+    const { error } = await supabase.from("profiles").delete().eq("id", userId);
+    if (error) throw error;
+    return true;
   }
 
   memoryProfiles.delete(userId);
@@ -699,7 +657,6 @@ export async function exportUserData(userId: string): Promise<ExportDataResult> 
 
   const jsonBundle = JSON.stringify(rawData, null, 2);
 
-  // Generate Markdown export bundle
   let md = `# RepoPilot Account Data Export\n\n`;
   md += `**Export Date**: ${new Date().toISOString()}  \n`;
   md += `**User**: ${profile.display_name} (${profile.id})  \n`;
@@ -753,11 +710,9 @@ export async function getUserUsageStats(userId: string): Promise<{
   resetIntervalSeconds: number;
   dailyHistory: Array<{ date: string; count: number }>;
 }> {
-  // 60 requests per minute limit for authenticated users
   const requestsLimit = 60;
-  const requestsUsed = Math.min(12, requestsLimit); // representative window count
+  const requestsUsed = Math.min(12, requestsLimit);
 
-  // Generate 30-day usage history
   const dailyHistory: Array<{ date: string; count: number }> = [];
   const now = new Date();
 
@@ -765,7 +720,6 @@ export async function getUserUsageStats(userId: string): Promise<{
     const d = new Date(now);
     d.setDate(d.getDate() - i);
     const dateStr = d.toISOString().split("T")[0];
-    // Deterministic lightweight activity pattern
     const count = i === 0 ? 8 : i % 5 === 0 ? 14 : i % 3 === 0 ? 6 : (i * 3) % 11;
     dailyHistory.push({
       date: dateStr,
@@ -780,5 +734,3 @@ export async function getUserUsageStats(userId: string): Promise<{
     dailyHistory,
   };
 }
-
-

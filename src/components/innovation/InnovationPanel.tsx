@@ -19,6 +19,7 @@ import {
   ShieldAlert,
 } from "lucide-react";
 import { useSessionWorkspaceOptional } from "@/context/SessionWorkspaceContext";
+import { useToast } from "@/components/ui/Toast";
 
 interface InnovationPanelProps {
   repoUrl: string;
@@ -26,6 +27,7 @@ interface InnovationPanelProps {
 }
 
 export function InnovationPanel({ repoUrl, sessionId }: InnovationPanelProps) {
+  const { toast } = useToast();
   const workspace = useSessionWorkspaceOptional();
   const [localOpps, setLocalOpps] = useState<InnovationOpportunity[] | null>(null);
   const [localSelectedOpp, setLocalSelectedOpp] = useState<InnovationOpportunity | null>(null);
@@ -87,7 +89,13 @@ export function InnovationPanel({ repoUrl, sessionId }: InnovationPanelProps) {
 
       setOpportunities(data.opportunities);
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Error contacting server.");
+      const msg = err instanceof Error ? err.message : "Error contacting server.";
+      setErrorMsg(msg);
+      toast({
+        title: "Could not save opportunities",
+        message: msg,
+        type: "error",
+      });
     } finally {
       setIsLoadingOpps(false);
     }
@@ -116,7 +124,13 @@ export function InnovationPanel({ repoUrl, sessionId }: InnovationPanelProps) {
 
       setBlueprintResult(data as GeneratedBlueprintResult);
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : "Error generating blueprint.");
+      const msg = err instanceof Error ? err.message : "Error generating blueprint.";
+      setErrorMsg(msg);
+      toast({
+        title: "Could not save blueprint",
+        message: msg,
+        type: "error",
+      });
     } finally {
       setIsLoadingBlueprint(false);
     }
