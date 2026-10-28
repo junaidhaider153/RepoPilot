@@ -350,13 +350,13 @@ export function Sidebar({
         {/* Navigation links */}
         {!isCollapsed ? (
           <>
-            <a
-              href="#library"
+            <Link
+              href="/app/library"
               className="flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-[#666666] hover:text-[#171717] hover:bg-[#fafafa] transition-colors"
             >
               <BookOpen className="w-3.5 h-3.5" />
               <span>Library</span>
-            </a>
+            </Link>
             <Link
               href="/app/settings"
               className="flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-[#666666] hover:text-[#171717] hover:bg-[#fafafa] transition-colors"
@@ -367,13 +367,13 @@ export function Sidebar({
           </>
         ) : (
           <div className="flex flex-col items-center gap-1">
-            <a
-              href="#library"
+            <Link
+              href="/app/library"
               title="Library"
               className="p-1.5 rounded text-[#666666] hover:text-[#171717] hover:bg-[#fafafa] transition-colors"
             >
               <BookOpen className="w-4 h-4" />
-            </a>
+            </Link>
             <Link
               href="/app/settings"
               title="Settings"
@@ -438,7 +438,11 @@ export function Sidebar({
                 label: "Keyboard Shortcuts",
                 icon: <Keyboard className="w-3.5 h-3.5" />,
                 shortcut: "Ctrl+K",
-                onClick: () => {},
+                onClick: () => {
+                  if (typeof window !== "undefined") {
+                    window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }));
+                  }
+                },
               },
               "divider",
               {

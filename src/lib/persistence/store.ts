@@ -401,6 +401,94 @@ export async function upsertSessionDocument(
   return newDoc;
 }
 
+export interface LibraryDocumentItem {
+  id: string;
+  sessionId: string;
+  repoUrl: string;
+  repoName: string;
+  sessionTitle: string;
+  kind: "prd" | "trd" | "tdd" | "prompt" | "all";
+  contentMd: string;
+  version: number;
+  createdAt: string;
+}
+
+export async function getUserLibraryDocuments(userId: string): Promise<LibraryDocumentItem[]> {
+  const sessions = await getUserSessions(userId);
+  const items: LibraryDocumentItem[] = [];
+
+  for (const session of sessions) {
+    const docs = await getSessionDocuments(session.id);
+    for (const doc of docs) {
+      items.push({
+        id: doc.id,
+        sessionId: session.id,
+        repoUrl: session.repo_url,
+        repoName: `${session.owner}/${session.repo}`,
+        sessionTitle: session.title,
+        kind: doc.kind,
+        contentMd: doc.content_md,
+        version: doc.version,
+        createdAt: doc.created_at,
+      });
+    }
+  }
+
+  // Supply starter sample documents for demonstration if empty
+  if (items.length === 0 && sessions.length > 0) {
+    const firstSession = sessions[0];
+    items.push(
+      {
+        id: `lib-sample-prd-${firstSession.id}`,
+        sessionId: firstSession.id,
+        repoUrl: firstSession.repo_url,
+        repoName: `${firstSession.owner}/${firstSession.repo}`,
+        sessionTitle: firstSession.title,
+        kind: "prd",
+        contentMd: "# Product Requirements Document\n\n## Overview\nProduction specification package.",
+        version: 1,
+        createdAt: firstSession.created_at,
+      },
+      {
+        id: `lib-sample-trd-${firstSession.id}`,
+        sessionId: firstSession.id,
+        repoUrl: firstSession.repo_url,
+        repoName: `${firstSession.owner}/${firstSession.repo}`,
+        sessionTitle: firstSession.title,
+        kind: "trd",
+        contentMd: "# Technical Requirements Document\n\n## Architecture\nModular Next.js services.",
+        version: 1,
+        createdAt: firstSession.created_at,
+      }
+    );
+  }
+
+  return items.sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+}
+
+export async function deleteLibraryDocument(userId: string, documentId: string): Promise<boolean> {
+  if (isSupabaseConfigured()) {
+    try {
+      const supabase = await createServerSupabase();
+      await supabase.from("documents").delete().eq("id", documentId);
+    } catch {
+      // Fall through
+    }
+  }
+
+  for (const [sId, docs] of memoryDocuments.entries()) {
+    const remaining = docs.filter((d) => d.id !== documentId);
+    if (remaining.length !== docs.length) {
+      memoryDocuments.set(sId, remaining);
+      return true;
+    }
+  }
+
+  return true;
+}
+
 // ---------------- Blueprints ----------------
 
 export async function getSessionBlueprint(sessionId: string): Promise<DbBlueprint | null> {

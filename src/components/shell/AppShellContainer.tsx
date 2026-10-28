@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { MobileDrawer } from "./MobileDrawer";
+import { CommandPalette } from "./CommandPalette";
 import { useSessionContext } from "@/context/SessionContext";
 import { useAuth } from "@/context/AuthContext";
 import { ToastProvider, useToast } from "@/components/ui/Toast";
@@ -31,6 +32,7 @@ function AppShellInner({ children }: { children: React.ReactNode }) {
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
   // Extract active session ID from URL path: /app/s/[id]...
   const sessionMatch = pathname.match(/^\/app\/s\/([^/]+)/);
@@ -108,9 +110,15 @@ Exported At: ${new Date().toISOString()}
     [sessions, toast]
   );
 
-  // Keyboard shortcut listener (N: new session, [: toggle sidebar)
+  // Keyboard shortcut listener (Ctrl/Cmd+K: palette, N: new session, [: toggle sidebar)
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K")) {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+        return;
+      }
+
       const target = e.target as HTMLElement;
       if (
         target.tagName === "INPUT" ||
@@ -181,6 +189,14 @@ Exported At: ${new Date().toISOString()}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative">
         {children}
       </div>
+
+      {/* Global Command Palette */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        sessions={sessions}
+        onNewSession={handleNewSession}
+      />
     </div>
   );
 }
