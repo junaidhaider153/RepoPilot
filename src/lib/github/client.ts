@@ -244,58 +244,68 @@ export async function ingestRepository(
     );
   }
 
-  // 4. Fetch selected file contents with bounded context
+  // 4. Fetch selected file contents concurrently with bounded context
   const retrievedFiles: RetrievedFile[] = [];
   let currentTotalChars = 0;
 
-  for (const { item, category } of rankedFiles) {
-    try {
-      const content = await fetchFileContent(
-        input,
-        item.path,
-        repository.defaultBranch,
-        fetchOpts
-      );
+  const fetchedResults = await Promise.all(
+    rankedFiles.map(async ({ item, category }) => {
+      try {
+        const content = await fetchFileContent(
+          input,
+          item.path,
+          repository.defaultBranch,
+          fetchOpts
+        );
+        return { item, category, content, ok: true };
+      } catch {
+        return { item, category, content: "", ok: false };
+      }
+    })
+  );
 
-      // Sanitize null bytes or non-text characters
-      const cleanContent = content.replace(/\0/g, "");
-      const charLength = cleanContent.length;
+  for (const { item, category, content, ok } of fetchedResults) {
+    if (!ok) {
+      coverageNotes.push(`Could not retrieve contents for "${item.path}". File skipped.`);
+      continue;
+    }
 
-      // Check if adding this file exceeds aggregate context
-      if (currentTotalChars + charLength > maxContextChars) {
-        // Truncate file content to fit remaining budget
-        const remainingChars = maxContextChars - currentTotalChars;
-        if (remainingChars > 500) {
-          const truncatedContent =
-            cleanContent.slice(0, remainingChars) +
-            "\n... [File content truncated to respect context limit]";
-          retrievedFiles.push({
-            path: item.path,
-            content: truncatedContent,
-            sizeBytes: Buffer.byteLength(truncatedContent, "utf8"),
-            category,
-          });
-          currentTotalChars += truncatedContent.length;
-          coverageNotes.push(
-            `File "${item.path}" was truncated to fit the ${maxContextChars} total character limit.`
-          );
-        } else {
-          coverageNotes.push(
-            `Context limit reached (${maxContextChars} chars). Additional candidate files were omitted.`
-          );
-          break;
-        }
-      } else {
+    // Sanitize null bytes or non-text characters
+    const cleanContent = content.replace(/\0/g, "");
+    const charLength = cleanContent.length;
+
+    // Check if adding this file exceeds aggregate context
+    if (currentTotalChars + charLength > maxContextChars) {
+      // Truncate file content to fit remaining budget
+      const remainingChars = maxContextChars - currentTotalChars;
+      if (remainingChars > 500) {
+        const truncatedContent =
+          cleanContent.slice(0, remainingChars) +
+          "\n... [File content truncated to respect context limit]";
         retrievedFiles.push({
           path: item.path,
-          content: cleanContent,
-          sizeBytes: Buffer.byteLength(cleanContent, "utf8"),
+          content: truncatedContent,
+          sizeBytes: Buffer.byteLength(truncatedContent, "utf8"),
           category,
         });
-        currentTotalChars += charLength;
+        currentTotalChars += truncatedContent.length;
+        coverageNotes.push(
+          `File "${item.path}" was truncated to fit the ${maxContextChars} total character limit.`
+        );
+      } else {
+        coverageNotes.push(
+          `Context limit reached (${maxContextChars} chars). Additional candidate files were omitted.`
+        );
+        break;
       }
-    } catch {
-      coverageNotes.push(`Could not retrieve contents for "${item.path}". File skipped.`);
+    } else {
+      retrievedFiles.push({
+        path: item.path,
+        content: cleanContent,
+        sizeBytes: Buffer.byteLength(cleanContent, "utf8"),
+        category,
+      });
+      currentTotalChars += charLength;
     }
   }
 
