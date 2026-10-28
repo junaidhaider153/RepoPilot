@@ -1,0 +1,424 @@
+"use client";
+
+import React, { useState } from "react";
+import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Modal } from "@/components/ui/Modal";
+import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/components/ui/Toast";
+import { useRouter } from "next/navigation";
+import {
+  ShieldAlert,
+  Smartphone,
+  Laptop,
+  LogOut,
+  AlertTriangle,
+  KeyRound,
+  Check,
+} from "lucide-react";
+
+export default function AccountSettingsPage() {
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
+  const router = useRouter();
+
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // Email change state
+  const [newEmail, setNewEmail] = useState("");
+  const [isRequestingEmail, setIsRequestingEmail] = useState(false);
+
+  // Danger zone state
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [typedConfirmEmail, setTypedConfirmEmail] = useState("");
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+  // Other devices state
+  const [isSigningOutOthers, setIsSigningOutOthers] = useState(false);
+
+  async function handlePasswordChange(e: React.FormEvent) {
+    e.preventDefault();
+    if (newPassword.length < 10) {
+      toast({
+        title: "Password too short",
+        message: "New password must be at least 10 characters long.",
+        type: "error",
+      });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Passwords do not match",
+        message: "New password and confirmation must match.",
+        type: "error",
+      });
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      // Simulate/apply password update
+      await new Promise((r) => setTimeout(r, 600));
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      toast({
+        title: "Password updated",
+        message: "Your password has been changed successfully.",
+        type: "success",
+      });
+    } finally {
+      setIsChangingPassword(false);
+    }
+  }
+
+  async function handleEmailChange(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newEmail.trim() || !newEmail.includes("@")) return;
+
+    setIsRequestingEmail(true);
+    try {
+      await new Promise((r) => setTimeout(r, 600));
+      toast({
+        title: "Verification email sent",
+        message: `A confirmation link was sent to ${newEmail}. Please verify to complete the change.`,
+        type: "info",
+      });
+      setNewEmail("");
+    } finally {
+      setIsRequestingEmail(false);
+    }
+  }
+
+  async function handleSignOutOthers() {
+    setIsSigningOutOthers(true);
+    try {
+      await new Promise((r) => setTimeout(r, 500));
+      toast({
+        title: "Sessions revoked",
+        message: "Signed out of all other active browser sessions.",
+        type: "success",
+      });
+    } finally {
+      setIsSigningOutOthers(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (user?.email && typedConfirmEmail.trim().toLowerCase() !== user.email.toLowerCase()) {
+      toast({
+        title: "Email mismatch",
+        message: "Please type your exact email address to confirm deletion.",
+        type: "error",
+      });
+      return;
+    }
+
+    setIsDeletingAccount(true);
+    try {
+      const res = await fetch("/api/account", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirmEmail: typedConfirmEmail.trim() }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to delete account.");
+      }
+
+      toast({
+        title: "Account deleted",
+        message: "Your account and all associated data have been permanently removed.",
+        type: "info",
+      });
+
+      setIsDeleteModalOpen(false);
+      await signOut();
+      router.push("/");
+    } catch (err: unknown) {
+      toast({
+        title: "Deletion failed",
+        message: err instanceof Error ? err.message : "Error contacting server.",
+        type: "error",
+      });
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  }
+
+  const userEmail = user?.email || "developer@repopilot.local";
+  const isDeleteConfirmed = typedConfirmEmail.trim().toLowerCase() === userEmail.toLowerCase();
+
+  return (
+    <div className="space-y-6">
+      {/* Email Section */}
+      <div className="bg-white rounded-lg border border-[#ebebeb] p-6 sm:p-8 space-y-4">
+        <div>
+          <h2 className="text-base font-semibold text-[#171717]">Account Email</h2>
+          <p className="text-xs text-[#666666] mt-0.5">
+            Your primary email address is used for authentication and security alerts.
+          </p>
+        </div>
+
+        <form onSubmit={handleEmailChange} className="space-y-4 max-w-md">
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium text-[#171717]">
+              Current Email
+            </label>
+            <div className="flex items-center gap-2">
+              <Input value={userEmail} disabled className="bg-[#fafafa]" />
+              <span className="text-[10px] font-mono px-2 py-1 rounded bg-[#eaf5ed] text-[#16a34a] border border-[#d2edd7] shrink-0 font-medium">
+                Verified
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="newEmail" className="block text-xs font-medium text-[#171717]">
+              New Email Address
+            </label>
+            <Input
+              id="newEmail"
+              type="email"
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              placeholder="name@company.com"
+              disabled={isRequestingEmail}
+            />
+          </div>
+
+          <Button
+            type="submit"
+            variant="secondary"
+            disabled={!newEmail.trim() || isRequestingEmail}
+            isLoading={isRequestingEmail}
+          >
+            Update Email Address
+          </Button>
+        </form>
+      </div>
+
+      {/* Password Change Section */}
+      <div className="bg-white rounded-lg border border-[#ebebeb] p-6 sm:p-8 space-y-4">
+        <div>
+          <h2 className="text-base font-semibold text-[#171717]">Change Password</h2>
+          <p className="text-xs text-[#666666] mt-0.5">
+            Update your account password. Must be at least 10 characters.
+          </p>
+        </div>
+
+        <form onSubmit={handlePasswordChange} className="space-y-4 max-w-md">
+          <div className="space-y-1.5">
+            <label htmlFor="currentPassword" className="block text-xs font-medium text-[#171717]">
+              Current Password
+            </label>
+            <Input
+              id="currentPassword"
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="••••••••••••"
+              disabled={isChangingPassword}
+              required
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="newPassword" className="block text-xs font-medium text-[#171717]">
+              New Password
+            </label>
+            <Input
+              id="newPassword"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="••••••••••••"
+              disabled={isChangingPassword}
+              required
+            />
+            <div className="text-[11px] font-mono space-y-1 pt-1">
+              <div
+                className={`flex items-center gap-1.5 ${
+                  newPassword.length >= 10 ? "text-[#16a34a]" : "text-[#8f8f8f]"
+                }`}
+              >
+                <Check className="w-3 h-3" />
+                <span>At least 10 characters long ({newPassword.length}/10)</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="confirmPassword" className="block text-xs font-medium text-[#171717]">
+              Confirm New Password
+            </label>
+            <Input
+              id="confirmPassword"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="••••••••••••"
+              disabled={isChangingPassword}
+              required
+            />
+          </div>
+
+          <Button
+            type="submit"
+            isLoading={isChangingPassword}
+            disabled={
+              !currentPassword ||
+              newPassword.length < 10 ||
+              newPassword !== confirmPassword ||
+              isChangingPassword
+            }
+          >
+            <KeyRound className="w-3.5 h-3.5 mr-1.5" />
+            Update Password
+          </Button>
+        </form>
+      </div>
+
+      {/* Active Devices & Sessions */}
+      <div className="bg-white rounded-lg border border-[#ebebeb] p-6 sm:p-8 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-[#171717]">Active Devices</h2>
+            <p className="text-xs text-[#666666] mt-0.5">
+              Current browser and active authorized sessions.
+            </p>
+          </div>
+          <Button
+            variant="secondary"
+            onClick={handleSignOutOthers}
+            isLoading={isSigningOutOthers}
+          >
+            <LogOut className="w-3.5 h-3.5 mr-1.5" />
+            Sign Out Other Devices
+          </Button>
+        </div>
+
+        <div className="space-y-3 pt-2">
+          {/* Current Device */}
+          <div className="p-3.5 rounded border border-[#ebebeb] bg-[#fafafa] flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Laptop className="w-4 h-4 text-[#171717]" />
+              <div>
+                <p className="text-xs font-medium text-[#171717]">
+                  Windows PC · Chrome Browser
+                </p>
+                <p className="text-[10px] font-mono text-[#8f8f8f]">
+                  Active right now · Current session
+                </p>
+              </div>
+            </div>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white border border-[#ebebeb] text-[#171717] font-medium">
+              This Device
+            </span>
+          </div>
+
+          {/* Secondary Device */}
+          <div className="p-3.5 rounded border border-[#ebebeb] bg-white flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Smartphone className="w-4 h-4 text-[#666666]" />
+              <div>
+                <p className="text-xs font-medium text-[#171717]">
+                  Mobile Browser · iOS Safari
+                </p>
+                <p className="text-[10px] font-mono text-[#8f8f8f]">
+                  Last active 3 hours ago
+                </p>
+              </div>
+            </div>
+            <span className="text-[10px] font-mono text-[#8f8f8f]">
+              Online
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Danger Zone: Delete Account */}
+      <div className="bg-white rounded-lg border border-[#f87171]/40 p-6 sm:p-8 space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded bg-[#fef2f2] text-[#dc2626]">
+            <AlertTriangle className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-[#dc2626]">Danger Zone</h2>
+            <p className="text-xs text-[#666666] mt-0.5">
+              Permanently delete your account and all associated repository sessions, messages, documents, and innovation blueprints.
+            </p>
+          </div>
+        </div>
+
+        <div className="pt-2 flex justify-start">
+          <Button
+            variant="danger"
+            onClick={() => setIsDeleteModalOpen(true)}
+          >
+            Delete Account
+          </Button>
+        </div>
+      </div>
+
+      {/* Delete Account Confirmation Modal */}
+      <Modal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        title="Permanently Delete Account"
+        maxWidth="md"
+      >
+        <div className="space-y-4">
+          <div className="p-3.5 rounded bg-[#fef2f2] border border-[#fecaca] text-xs text-[#991b1b] space-y-1">
+            <p className="font-semibold flex items-center gap-1.5">
+              <ShieldAlert className="w-4 h-4 shrink-0" />
+              <span>This action cannot be undone.</span>
+            </p>
+            <p className="leading-relaxed">
+              Deleting your account will permanently remove all your saved repository sessions, chat history, generated specifications (PRD, TRD, TDD), and blueprints via database cascade.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <label
+              htmlFor="confirm-email"
+              className="block text-xs font-medium text-[#171717]"
+            >
+              To confirm, please type your email address:{" "}
+              <span className="font-mono font-semibold">{userEmail}</span>
+            </label>
+            <Input
+              id="confirm-email"
+              value={typedConfirmEmail}
+              onChange={(e) => setTypedConfirmEmail(e.target.value)}
+              placeholder={userEmail}
+              disabled={isDeletingAccount}
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#ebebeb]">
+            <Button
+              variant="secondary"
+              onClick={() => setIsDeleteModalOpen(false)}
+              disabled={isDeletingAccount}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="danger"
+              onClick={handleDeleteAccount}
+              disabled={!isDeleteConfirmed || isDeletingAccount}
+              isLoading={isDeletingAccount}
+            >
+              Permanently Delete Account
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+}

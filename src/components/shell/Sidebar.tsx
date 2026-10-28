@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
+import Link from "next/link";
 import {
   PanelLeftClose,
   PanelLeft,
@@ -356,13 +357,13 @@ export function Sidebar({
               <BookOpen className="w-3.5 h-3.5" />
               <span>Library</span>
             </a>
-            <a
-              href="#settings"
+            <Link
+              href="/app/settings"
               className="flex items-center gap-2 px-2.5 py-1.5 rounded text-xs text-[#666666] hover:text-[#171717] hover:bg-[#fafafa] transition-colors"
             >
               <Settings className="w-3.5 h-3.5" />
               <span>Settings</span>
-            </a>
+            </Link>
           </>
         ) : (
           <div className="flex flex-col items-center gap-1">
@@ -373,13 +374,13 @@ export function Sidebar({
             >
               <BookOpen className="w-4 h-4" />
             </a>
-            <a
-              href="#settings"
+            <Link
+              href="/app/settings"
               title="Settings"
               className="p-1.5 rounded text-[#666666] hover:text-[#171717] hover:bg-[#fafafa] transition-colors"
             >
               <Settings className="w-4 h-4" />
-            </a>
+            </Link>
           </div>
         )}
 
@@ -417,7 +418,9 @@ export function Sidebar({
                 label: "Profile Settings",
                 icon: <User className="w-3.5 h-3.5" />,
                 onClick: () => {
-                  window.location.hash = "profile";
+                  if (typeof window !== "undefined") {
+                    window.location.href = "/app/settings";
+                  }
                 },
               },
               {
@@ -425,7 +428,9 @@ export function Sidebar({
                 label: "Account Preferences",
                 icon: <Settings className="w-3.5 h-3.5" />,
                 onClick: () => {
-                  window.location.hash = "settings";
+                  if (typeof window !== "undefined") {
+                    window.location.href = "/app/settings/account";
+                  }
                 },
               },
               {

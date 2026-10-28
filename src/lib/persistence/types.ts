@@ -51,6 +51,14 @@ export interface DbBlueprint {
   created_at: string;
 }
 
+export interface DbProfile {
+  id: string;
+  display_name: string;
+  avatar_url: string | null;
+  bio?: string;
+  created_at: string;
+}
+
 export interface DbUsageEvent {
   id: string;
   user_id: string;

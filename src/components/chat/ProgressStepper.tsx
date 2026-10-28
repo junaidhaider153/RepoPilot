@@ -69,3 +69,4 @@ export function ProgressStepper({ steps, className }: ProgressStepperProps) {
     </div>
   );
 }
+
