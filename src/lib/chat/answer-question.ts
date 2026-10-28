@@ -67,6 +67,12 @@ export async function answerRepositoryQuestion({
     );
   }
 
+  // Clean thought tags if embedded in answer string
+  parsed.answer = parsed.answer
+    .replace(/<thought>[\s\S]*?<\/thought>/gi, "")
+    .replace(/<think>[\s\S]*?<\/think>/gi, "")
+    .trim();
+
   // Cross-reference evidence paths with retrieved files
   const validFilePaths = new Set(context.files.map((f) => f.path));
 

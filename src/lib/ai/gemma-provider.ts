@@ -85,15 +85,20 @@ export class GemmaProvider implements InferenceProvider {
       ? this.baseUrl
       : `${this.baseUrl}/chat/completions`;
 
+    const isGoogleEndpoint = this.baseUrl.includes("generativelanguage.googleapis.com");
+
     const payload: Record<string, unknown> = {
       model: this.modelId,
       messages: options.messages,
-      temperature: options.temperature ?? 0.2,
-      max_tokens: options.maxTokens ?? 4096,
     };
 
-    if (options.responseFormat === "json_object") {
-      payload.response_format = { type: "json_object" };
+    // Google Generative Language API's OpenAI compatibility layer rejects temperature and response_format
+    if (!isGoogleEndpoint) {
+      payload.temperature = options.temperature ?? 0.2;
+      payload.max_tokens = options.maxTokens ?? 4096;
+      if (options.responseFormat === "json_object") {
+        payload.response_format = { type: "json_object" };
+      }
     }
 
     try {

@@ -134,6 +134,10 @@ export type InnovationBlueprint = z.infer<typeof InnovationBlueprintSchema>;
 export function extractAndParseJson<T>(rawText: string, schema: z.ZodType<T, any, any>): T {
   let cleaned = rawText.trim();
 
+  // Strip thinking tags if emitted by model (e.g. <thought>...</thought> or <think>...</think>)
+  cleaned = cleaned.replace(/<thought>[\s\S]*?<\/thought>/gi, "").trim();
+  cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+
   // Strip markdown code fences if present (e.g. ```json ... ```)
   if (cleaned.startsWith("```")) {
     const lines = cleaned.split("\n");

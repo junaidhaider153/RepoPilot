@@ -33,8 +33,8 @@ describe("Gemma Provider Integration & Smoke Seam", () => {
     const provider = new GemmaProvider({
       apiKey,
       baseUrl,
-      model: process.env.GEMMA_MODEL || "gemma2-9b-it",
-      timeoutMs: 15000,
+      model: process.env.GEMMA_MODEL || "gemma-4-31b-it",
+      timeoutMs: 45000,
     });
 
     const completion = await provider.generateCompletion({
@@ -44,6 +44,15 @@ describe("Gemma Provider Integration & Smoke Seam", () => {
 
     expect(completion.content).toBeDefined();
     expect(completion.content.length).toBeGreaterThan(0);
-  });
+  }, 50000);
+
+  it("runs live analyzeRepository for octocat/Hello-World if credentials exist", async () => {
+    if (!process.env.GEMMA_API_KEY) return;
+    const { analyzeRepository } = await import("@/lib/analysis/analyze-repository");
+    const result = await analyzeRepository("https://github.com/octocat/Hello-World");
+    expect(result.repository.name).toBe("Hello-World");
+    expect(result.analysis.purposeSummary).toBeDefined();
+    expect(result.analyzedFiles.length).toBeGreaterThan(0);
+  }, 60000);
 });
 
