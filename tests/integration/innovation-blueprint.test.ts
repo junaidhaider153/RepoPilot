@@ -186,3 +186,4 @@ describe("Innovation Opportunities & Blueprint Generation", () => {
     expect(data.error.code).toBe("INVALID_REQUEST");
   });
 });
+

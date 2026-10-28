@@ -274,3 +274,4 @@ export function DocumentsPanel({ repoUrl }: DocumentsPanelProps) {
     </div>
   );
 }
+

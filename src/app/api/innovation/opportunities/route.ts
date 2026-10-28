@@ -2,9 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { generateInnovationOpportunities } from "@/lib/innovation/generate-opportunities";
 import { GitHubIngestionError } from "@/lib/github/types";
 import { AIProviderError } from "@/lib/ai/types";
+import { checkRateLimit } from "@/lib/security/rate-limiter";
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get("x-forwarded-for") || "local-client";
+    const rateCheck = checkRateLimit(ip);
+    if (!rateCheck.success) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "REQUEST_LIMIT_EXCEEDED",
+            message: "Too many innovation requests. Please wait a moment before trying again.",
+          },
+        },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json().catch(() => null);
 
     if (!body || typeof body.url !== "string") {

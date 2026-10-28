@@ -221,3 +221,4 @@ describe("GitHub Client Integration", () => {
     expect(result.coverageNotes.length).toBeGreaterThan(0);
   });
 });
+

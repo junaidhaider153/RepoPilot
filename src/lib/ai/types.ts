@@ -50,3 +50,4 @@ export interface InferenceProvider {
   isConfigured(): boolean;
   getDisclosure(): { providerName: string; model: string; configured: boolean };
 }
+

@@ -83,3 +83,4 @@ describe("selectRepositoryFiles and filters", () => {
     expect(selected.some((s) => s.item.path === "huge-file.ts")).toBe(false);
   });
 });
+

@@ -131,3 +131,4 @@ describe("AI Runtime Output Schemas", () => {
     expect(InnovationBlueprintSchema.safeParse(valid).success).toBe(true);
   });
 });
+

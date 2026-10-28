@@ -82,3 +82,4 @@ describe("detectTechnologies", () => {
     expect(tech).toContain("Docker");
   });
 });
+

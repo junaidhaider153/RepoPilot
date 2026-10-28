@@ -96,3 +96,4 @@ export function detectTechnologies(files: RetrievedFile[]): string[] {
 
   return Array.from(detected).sort();
 }
+

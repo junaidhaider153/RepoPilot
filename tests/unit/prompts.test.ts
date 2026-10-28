@@ -65,3 +65,4 @@ describe("AI Prompts and Untrusted Boundaries", () => {
     expect(messages[messages.length - 1].content).toContain("How does auth work?");
   });
 });
+

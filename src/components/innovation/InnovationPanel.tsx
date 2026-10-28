@@ -465,3 +465,4 @@ export function InnovationPanel({ repoUrl }: InnovationPanelProps) {
     </div>
   );
 }
+

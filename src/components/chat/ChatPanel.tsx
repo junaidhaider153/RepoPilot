@@ -219,3 +219,4 @@ export function ChatPanel({ repoUrl }: ChatPanelProps) {
     </div>
   );
 }
+

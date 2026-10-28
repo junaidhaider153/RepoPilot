@@ -82,3 +82,4 @@ export class GitHubIngestionError extends Error {
     this.details = details;
   }
 }
+

@@ -46,3 +46,4 @@ describe("Gemma Provider Integration & Smoke Seam", () => {
     expect(completion.content.length).toBeGreaterThan(0);
   });
 });
+

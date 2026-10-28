@@ -147,3 +147,4 @@ Hope this helps!`;
     expect(parsed.purposeSummary).toBe("A test app");
   });
 });
+
