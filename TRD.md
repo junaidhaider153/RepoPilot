@@ -15,6 +15,7 @@ Define the technical capabilities and constraints required to deliver the RepoPi
 7. Testing: the framework's unit/integration test tools plus browser-based end-to-end testing where time permits.
 8. Hosting: Vercel.
 9. Documents: Markdown generated server-side or safely formatted on the client.
+10. Authentication & Persistence: Supabase (Auth + Postgres with Row-Level Security). Sign-in via email/password and GitHub OAuth.
 
 Antigravity must verify current package versions and provider request formats before implementation rather than assuming a specific API shape.
 
@@ -31,6 +32,9 @@ Required or optional server-side environment variables should be documented in `
 7. `MAX_FILE_BYTES` — maximum individual file size.
 8. `MAX_CONTEXT_CHARS` — maximum combined text context.
 9. `MAX_REQUESTS_PER_WINDOW` or equivalent rate-limit configuration where supported.
+10. `NEXT_PUBLIC_SUPABASE_URL` — Supabase project API URL.
+11. `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase client-side anonymous key.
+12. `SUPABASE_SERVICE_ROLE_KEY` — optional server-side elevated key for administrative/cleanup tasks.
 
 Validate required settings at runtime. The application must explain missing AI configuration rather than crashing. Never expose environment variables to client-side code. Avoid using a `NEXT_PUBLIC_` prefix for secrets.
 
@@ -68,7 +72,7 @@ Validate required settings at runtime. The application must explain missing AI c
 3. Avoid sending entire large repositories to the model.
 4. Keep model context small and prioritize high-signal files.
 5. If an operation cannot fit in one request, reduce scope for the MVP rather than adding a complex queue.
-6. Avoid storing repository contents or prompts persistently in the MVP.
+6. Store analysis output, selected file paths, and short evidence excerpts per session. Do not store full repository file contents; re-fetch files from GitHub when needed or on explicit Refresh. Persist sessions, messages, documents, and blueprints in PostgreSQL with Row-Level Security.
 7. Keep responses and UI state bounded; use progress indicators for multi-stage work.
 8. Check current Vercel plan and runtime limits before deployment and set explicit function configuration only when supported.
 
@@ -81,10 +85,14 @@ Validate required settings at runtime. The application must explain missing AI c
 5. Prevent SSRF by constructing requests only to fixed GitHub API hosts and the explicitly configured inference provider; do not fetch arbitrary URLs from repository content.
 6. Keep secrets server-side; redact tokens from logs and errors.
 7. Do not log full repository contents or prompts by default.
-8. Sanitize Markdown rendering and disallow unsafe HTML.
-9. Add request throttling or abuse controls appropriate to the deployment.
-10. Disclose that submitted public repository content is sent to the configured inference provider, subject to that provider's terms and retention policy.
-11. Do not claim that private data is supported or secure; private repositories are out of scope.
+8. Sanitize Markdown rendering and disallow unsafe HTML across all stored and rendered content.
+9. Add request throttling: rate limit login, signup, and reset endpoints. For AI endpoints, throttle by authenticated user ID with IP fallback for guest mode.
+10. Store auth sessions in `httpOnly`, `secure`, `sameSite` cookies; never store JWT or refresh tokens in `localStorage`.
+11. Row-level security: enforce user-isolation policies at the database layer on every table, never relying solely on application-level filtering.
+12. Account deletion: deleting an account cascades and removes all associated profiles, sessions, snapshots, messages, documents, and blueprints.
+13. Disclose that submitted public repository content is sent to the configured inference provider, subject to that provider's terms and retention policy.
+14. Do not reveal account existence on login, signup, or password reset.
+15. Do not claim that private data is supported or secure; private repositories are out of scope.
 
 ## 8. Accessibility and UX requirements
 

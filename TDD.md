@@ -197,7 +197,19 @@ Request:
 }
 ```
 
-For the stateless MVP, avoid trusting arbitrary client-supplied file contents. Prefer server-side re-fetching within strict limits or a bounded signed/session mechanism if needed. Do not invent persistence merely to pass context between routes.
+For persistent sessions, the server stores a lightweight repository snapshot (`repo_snapshots`) containing the default branch, selected file paths, tech stack, coverage notes, and analysis JSON. Downstream chat, document generation, and blueprint calls reference `sessionId` and retrieve the cached snapshot, eliminating redundant GitHub API calls. Re-ingestion occurs only when the user explicitly triggers "Refresh repository" or when testing via guest mode.
+
+### Session and User API Routes
+
+- `GET/POST /api/sessions`: List user sessions (sorted by date, pinned first) / Create new session from validated repository URL and store initial snapshot.
+- `GET/PATCH/DELETE /api/sessions/[id]`: Retrieve session with cached snapshot / Rename or pin session / Delete session with cascading removal of messages and documents.
+- `GET/POST /api/sessions/[id]/messages`: Retrieve conversation thread / Append user message and generate grounded assistant response with evidence chips.
+- `GET/POST /api/sessions/[id]/documents`: Retrieve or generate/persist PRD, TRD, TDD, and coding prompt from cached snapshot.
+- `GET/POST /api/sessions/[id]/blueprint`: Retrieve or generate/persist innovation opportunities and selected blueprint from cached snapshot.
+- `POST /api/sessions/[id]/refresh`: Re-fetch repository tree and files from GitHub, refreshing snapshot.
+- `PATCH /api/profile`: Update user display name and avatar.
+- `DELETE /api/account`: Delete user account and cascade delete all owned sessions, messages, documents, and snapshots.
+- `GET /api/account/export`: Export all user data as structured JSON and Markdown bundles.
 
 Response: answer, evidence references, and an insufficient-evidence flag.
 
@@ -263,15 +275,16 @@ Use stable application error categories such as:
 
 Expose user-safe messages; log only redacted diagnostic metadata.
 
-## 9. UI design
+## 9. UI design and App Shell
 
-Primary navigation:
-1. Overview
-2. Ask the Repository
-3. Project Documents
-4. Innovation Blueprint
+### App Shell Architecture (`/app/*`)
 
-The repository input should remain visible until analysis begins. The results page should show repository identity, technology tags, analyzed-file count, coverage limitations, and evidence links. The Innovation Blueprint should present three comparable cards with problem, value, complexity, evidence, and a “Generate blueprint” action. All AI-generated content should be editable/copyable where practical.
+- **Sidebar**: 260px expanded, 56px collapsed (icon rail). Remembers collapse state in preferences/cookie. Top has `▲ RepoPilot` wordmark and collapse toggle, "New Session" button (shortcut `N`), search field (`Ctrl/Cmd+K` command palette), pinned sessions, date-grouped sessions (Today, Yesterday, Previous 7 days, Older), Library link, and bottom User Menu (avatar, name, profile, settings, logout).
+- **Session Top Bar** (48px): Editable session title, GitHub repository chip (links to GitHub in new tab), tab links (Chat, Overview, Documents, Blueprint) with real URLs (`/app/s/[id]`, `/overview`, `/documents`, `/blueprint`) preserving browser history, and right-hand Export and Model Badge.
+- **Chat Workspace**: Centered 768px chat column, auto-growing Composer (1-8 lines, 1000-character counter, Stop button, Enter to send, Shift+Enter for newline), sanitized Markdown rendering with copyable code blocks, and clickable Evidence Chips that open a right-hand File Drawer displaying file excerpts and grounding reasons.
+- **Overview, Documents, Blueprint**: Wide canvas (up to 1000px), persistent tab routing, searchable file inventory table, document preview with single-click download and bundle export, and 3 comparable innovation opportunity cards with implementation phase blueprints.
+- **Auth & Settings Layout**: Centered 400px card for `/login`, `/signup`, `/forgot-password`, `/reset-password` with inline validation and checklists. Two-column settings layout (`/app/settings/profile`, `/account`, `/preferences`, `/usage`, `/data`) with cascading account deletion.
+- **Mobile (< 768px)**: Sidebar converts to an accessible drawer with focus trap and Escape listener; tab bar scrolls horizontally; composer remains pinned above on-screen keyboard.
 
 ## 10. Design trade-offs
 

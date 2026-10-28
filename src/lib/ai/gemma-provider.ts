@@ -54,7 +54,7 @@ export class GemmaProvider implements InferenceProvider {
     this.modelId = (config.model || process.env.GEMMA_MODEL || "gemini-3.5-flash").trim();
     this.defaultTimeoutMs =
       config.timeoutMs ||
-      parseInt(process.env.AI_REQUEST_TIMEOUT_MS || "60000", 10);
+      parseInt(process.env.AI_REQUEST_TIMEOUT_MS || "90000", 10);
   }
 
   public isConfigured(): boolean {
@@ -110,7 +110,7 @@ export class GemmaProvider implements InferenceProvider {
 
     const isGoogleEndpoint = this.baseUrl.includes("generativelanguage.googleapis.com");
     const candidateModels = isGoogleEndpoint
-      ? [this.modelId, "gemini-flash-lite-latest", "gemini-3-flash-preview", "gemini-3.5-flash-lite"].filter(
+      ? [this.modelId, "gemini-flash-lite-latest", "gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"].filter(
           (m, idx, arr) => Boolean(m) && arr.indexOf(m) === idx
         )
       : [this.modelId];

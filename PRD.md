@@ -57,16 +57,27 @@ Success is measured by completion of this end-to-end flow, accuracy of evidence 
 9. Responsive, accessible interface and meaningful loading/error states.
 10. Vercel deployment and documentation.
 
-### Out of scope for the MVP
+### In scope for this phase
 
-1. Private repositories and GitHub OAuth.
-2. User accounts, billing, persistent project history, and team workspaces.
+1. Public GitHub repository inspection and bounded text-file retrieval.
+2. Technology-stack detection from manifests and configuration.
+3. AI-generated repository overview, architecture analysis, and grounded chat.
+4. Consistent PRD, TRD, TDD, and coding-agent prompt generation.
+5. Innovation Blueprint with three opportunities and selected-feature implementation plan.
+6. User accounts (email/password and GitHub OAuth) via Supabase Auth.
+7. Persistent sessions, chat history, saved documents, and cached repository snapshots.
+8. Guest try-it mode: visitors can run one analysis and questions in-memory without an account.
+9. Profile, account settings, usage metrics, and full data export/deletion.
+10. Markdown copy, export, and download.
+
+### Out of scope for this phase
+
+1. Private repositories.
+2. Paid billing, subscriptions, and team workspaces.
 3. Automatic code changes, commits, pull requests, or repository execution.
-4. Guaranteed comprehensive static analysis of every file.
-5. Full competitor research or claims of market uniqueness.
-6. Vector database and elaborate multi-agent orchestration.
-7. Support for arbitrary Git hosts.
-8. Guaranteed support for very large monorepos.
+4. Guaranteed comprehensive static analysis of every file in very large monorepos.
+5. Vector database and multi-agent background orchestration.
+6. Support for arbitrary non-GitHub Git hosts.
 
 ## 7. Functional requirements
 
@@ -116,6 +127,22 @@ The interface displays loading progress and actionable messages for invalid URLs
 
 The application identifies the configured Gemma model/provider and reports when the model is unavailable. It must not silently substitute another model or present fixtures as real model output.
 
+### FR-11: Authentication
+
+Users can create an account and log in using email/password or GitHub OAuth via Supabase. Protected routes (`/app/*`) enforce server-side authentication with `?next=` redirects. Authentication failures return a single generic error to prevent account enumeration. Session tokens are stored in `httpOnly`, `secure`, `sameSite` cookies; no tokens in `localStorage`.
+
+### FR-12: Sessions and persistent history
+
+A session represents one analyzed repository, titled `owner/repo` (user-renamable), holding its cached repository snapshot, conversation messages, generated documents, and selected blueprint. Sessions are managed from a collapsible sidebar (pinned, grouped by date: Today, Yesterday, Previous 7 days, Older) with search, rename, export, and delete (with undo).
+
+### FR-13: Profile and account settings
+
+Users can update display name and avatar, change email/password, view active devices, review usage metrics, export all account data (JSON + Markdown), and delete their account (cascading deletion of all user records, sessions, messages, and documents).
+
+### FR-14: Guest try-it mode
+
+Visitors at `/` can inspect a public repository and ask questions without an account, kept only in temporary browser state. Saving sessions, returning to history, and generating persistent documents requires signing in.
+
 ## 8. Non-functional requirements
 
 1. Security: credentials remain server-side; no repository code execution; untrusted repository content cannot override application instructions.
@@ -136,6 +163,9 @@ The application identifies the configured Gemma model/provider and reports when 
 5. As an innovator, I want evidence-aware improvement ideas so I can choose a meaningful differentiator.
 6. As a user of AI coding tools, I want a phased prompt so I can hand the plan to my coding agent.
 7. As a user, I want to download outputs so I can reuse them outside RepoPilot.
+8. As a returning user, I want to access my past repository sessions so I can continue asking questions without re-ingesting the repository.
+9. As a developer, I want to rename, pin, and organize my sessions so I can find key analyses quickly.
+10. As a privacy-conscious user, I want to export or delete my stored sessions and account data so I maintain full control over my data.
 
 ## 10. Key risks and mitigations
 

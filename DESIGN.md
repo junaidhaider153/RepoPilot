@@ -22,6 +22,8 @@ The Vercel reference takes priority over the earlier exploratory idea of an elec
 | `--color-obsidian` | `#171717` | Main text, headings, primary buttons, dark panels |
 | `--color-carbon` | `#000000` | Small geometric brand mark or icon artwork only |
 | `--color-terminal-green` | `#297a3a` | Success confirmation only; never the sole way to convey state |
+| `--color-warning-surface` | `#fff9e6` | Warning badge/banner background (border `#fae29c`, text `#7d5700`) |
+| `--color-success-surface` | `#eaf5ed` | Success badge/banner background (border `#c3e6cd`, text `#297a3a`) |
 
 No blue accent or decorative gradient in the MVP. Errors and warnings must remain accessible through text, icons, and labels, not color alone. Do not use pure black for normal text; reserve it for small graphic marks.
 
@@ -44,6 +46,16 @@ Use monospace for uppercase eyebrows, technical metadata, file paths, keyboard s
 ## Spacing, layout, and shape
 
 Use a 4px spacing rhythm. Core values: 4, 6, 8, 12, 16, 20, 24, 32, 40, and 44px. Set the centered page max-width to 1280px with 24–48px horizontal padding. Use 96–128px between major marketing sections on wide screens, then reduce proportionally on smaller screens. Keep application workspaces denser than the landing page. Default card padding is 16px; common control gap is 12px; card grids use 16–24px gaps.
+
+### App Shell Dimensions
+
+- **Sidebar**: 260px expanded, 56px collapsed (icon rail). Persist collapse state in storage/preferences.
+- **Top bar**: 48px inside app/session workspaces (64px remains for public marketing pages).
+- **Chat column**: 768px centered max-width.
+- **Overview / Documents / Blueprint canvas**: Up to 1000px max-width.
+- **Composer**: Minimum height 56px, 1px `#ebebeb` hairline border, 6px radius, no shadow, `#171717` focus ring.
+- **Suggestion Chips**: 12px Geist Mono, 1px hairline border, 6px radius, keyboard reachable.
+- **File Drawer**: Right-docked slide-over panel with focus trap, backdrop, and Escape listener.
 
 Use 6px radius for cards, buttons, and bordered panels; 2px for compact navigation details; full-pill radius only for a deliberately compact pill control. Prefer hairline borders to shadows. If a subtle ring is needed, use `0 0 0 1px rgba(0,0,0,0.08), 0 0 0 2px #fafafa`. Avoid drop shadows.
 
