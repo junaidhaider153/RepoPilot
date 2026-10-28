@@ -57,3 +57,4 @@ export interface DbUsageEvent {
   route: string;
   created_at: string;
 }
+

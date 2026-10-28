@@ -39,3 +39,4 @@ export async function getAuthUser(): Promise<AuthenticatedUser | null> {
     return null;
   }
 }
+
