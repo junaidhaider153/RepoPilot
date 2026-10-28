@@ -242,12 +242,20 @@ export default function HomePage() {
             </button>
           </div>
 
-          {/* Active Tab Panel */}
+          {/* Active Tab Panels: Keep mounted to preserve state across tab switches */}
           <div>
-            {activeTab === "overview" && <OverviewPanel data={analysisResult} />}
-            {activeTab === "chat" && <ChatPanel repoUrl={analyzedUrl} />}
-            {activeTab === "documents" && <DocumentsPanel repoUrl={analyzedUrl} />}
-            {activeTab === "innovation" && <InnovationPanel repoUrl={analyzedUrl} />}
+            <div className={activeTab === "overview" ? "block" : "hidden"}>
+              <OverviewPanel data={analysisResult} />
+            </div>
+            <div className={activeTab === "chat" ? "block" : "hidden"}>
+              <ChatPanel key={analyzedUrl} repoUrl={analyzedUrl} />
+            </div>
+            <div className={activeTab === "documents" ? "block" : "hidden"}>
+              <DocumentsPanel key={analyzedUrl} repoUrl={analyzedUrl} />
+            </div>
+            <div className={activeTab === "innovation" ? "block" : "hidden"}>
+              <InnovationPanel key={analyzedUrl} repoUrl={analyzedUrl} />
+            </div>
           </div>
         </div>
       )}

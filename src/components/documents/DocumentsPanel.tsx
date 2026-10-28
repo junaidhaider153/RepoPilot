@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { GeneratedDocumentsResult } from "@/lib/documents/generate-documents";
-import { Copy, Check, Download, FileText, Terminal, Layers, Sparkles, Loader2, AlertCircle } from "lucide-react";
+import { Copy, Check, Download, FileText, Terminal, Layers, Sparkles, Loader2, AlertCircle, RotateCcw } from "lucide-react";
 
 interface DocumentsPanelProps {
   repoUrl: string;
@@ -190,6 +190,14 @@ export function DocumentsPanel({ repoUrl }: DocumentsPanelProps) {
 
             {/* Global Actions */}
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => setData(null)}
+                className="px-3 py-1.5 rounded border border-[#ebebeb] text-xs font-mono text-[#666666] hover:text-[#171717] hover:bg-[#fafafa] flex items-center gap-1 transition-colors"
+                title="Synthesize new documents with a different concept"
+              >
+                <RotateCcw className="w-3 h-3" />
+                New Concept
+              </button>
               <button
                 onClick={() =>
                   handleDownload(

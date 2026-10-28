@@ -37,8 +37,19 @@ describe("selectRepositoryFiles and filters", () => {
     expect(shouldIgnorePath("app.min.js")).toBe(true);
     expect(shouldIgnorePath("bundle.js.map")).toBe(true);
 
+    // Non-essential docs and translated READMEs
+    expect(shouldIgnorePath("CHANGELOG.md")).toBe(true);
+    expect(shouldIgnorePath("LICENSE")).toBe(true);
+    expect(shouldIgnorePath("CODE_OF_CONDUCT.md")).toBe(true);
+    expect(shouldIgnorePath("SECURITY.md")).toBe(true);
+    expect(shouldIgnorePath("README.ja.md")).toBe(true);
+    expect(shouldIgnorePath("README.zh-CN.md")).toBe(true);
+
+    // Critical files preserved
+    expect(shouldIgnorePath(".github/workflows/security.yml")).toBe(false);
     expect(shouldIgnorePath("src/index.ts")).toBe(false);
     expect(shouldIgnorePath("README.md")).toBe(false);
+    expect(shouldIgnorePath("README.en.md")).toBe(false);
     expect(shouldIgnorePath("package.json")).toBe(false);
   });
 

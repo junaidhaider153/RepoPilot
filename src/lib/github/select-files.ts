@@ -83,6 +83,11 @@ const SKIPPED_LOCKFILES = new Set([
   "gemfile.lock",
 ]);
 
+const SKIPPED_DOC_PATTERNS =
+  /^(changelog|history|releases|license|licence|code_of_conduct|conduct|security|support|authors|contributors|funding)(\.(md|markdown|txt|rst))?$/i;
+
+const TRANSLATED_README_PATTERN = /^readme[._-](?!en\b)[a-z]{2,3}(-[a-z0-9]+)?\.md$/i;
+
 export interface RankedFile {
   item: GitHubTreeItem;
   category: FileCategory;
@@ -132,6 +137,16 @@ export function shouldIgnorePath(path: string): boolean {
     return true;
   }
 
+  // Skip non-essential changelogs, licenses, and governance documents (excluding workflow files)
+  if (!path.includes(".github/workflows/") && SKIPPED_DOC_PATTERNS.test(filename)) {
+    return true;
+  }
+
+  // Skip translated README duplicates (e.g. README.ja.md, README.ko.md, README.zh-CN.md)
+  if (TRANSLATED_README_PATTERN.test(filename)) {
+    return true;
+  }
+
   return false;
 }
 
@@ -139,9 +154,18 @@ export function categorizeAndScoreFile(path: string): { category: FileCategory; 
   const lower = path.toLowerCase();
   const filename = lower.split("/").pop() || "";
 
-  // 1. README
-  if (filename.startsWith("readme")) {
+  // 1. Root README
+  if (
+    path === "README.md" ||
+    path === "readme.md" ||
+    (!path.includes("/") && filename.startsWith("readme"))
+  ) {
     return { category: "readme", priority: 100 };
+  }
+
+  // Subfolder READMEs
+  if (filename.startsWith("readme")) {
+    return { category: "readme", priority: 65 };
   }
 
   // 2. Manifests

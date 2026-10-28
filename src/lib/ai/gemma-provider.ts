@@ -109,51 +109,70 @@ export class GemmaProvider implements InferenceProvider {
       : `${this.baseUrl}/chat/completions`;
 
     const isGoogleEndpoint = this.baseUrl.includes("generativelanguage.googleapis.com");
-
-    const payload: Record<string, unknown> = {
-      model: this.modelId,
-      messages: options.messages,
-    };
-
-    // Google Generative Language API's OpenAI compatibility layer rejects temperature and response_format
-    if (!isGoogleEndpoint) {
-      payload.temperature = options.temperature ?? 0.2;
-      payload.max_tokens = options.maxTokens ?? 4096;
-      if (options.responseFormat === "json_object") {
-        payload.response_format = { type: "json_object" };
-      }
-    }
+    const candidateModels = isGoogleEndpoint
+      ? [this.modelId, "gemini-flash-lite-latest", "gemini-3-flash-preview", "gemini-3.5-flash-lite"].filter(
+          (m, idx, arr) => Boolean(m) && arr.indexOf(m) === idx
+        )
+      : [this.modelId];
 
     try {
       let res: Response | null = null;
       let lastErrorText = "";
-      const maxRetries = this.maxRetries;
+      let lastStatus = 500;
 
-      for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        res = await fetch(endpoint, {
-          method: "POST",
-          headers,
-          body: JSON.stringify(payload),
-          signal: controller.signal,
-        });
+      for (const currentModel of candidateModels) {
+        const payload: Record<string, unknown> = {
+          model: currentModel,
+          messages: options.messages,
+        };
 
-        if (res.ok) {
+        // Google Generative Language API's OpenAI compatibility layer rejects temperature and response_format
+        if (!isGoogleEndpoint) {
+          payload.temperature = options.temperature ?? 0.2;
+          payload.max_tokens = options.maxTokens ?? 4096;
+          if (options.responseFormat === "json_object") {
+            payload.response_format = { type: "json_object" };
+          }
+        }
+
+        const maxRetries = this.maxRetries;
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          res = await fetch(endpoint, {
+            method: "POST",
+            headers,
+            body: JSON.stringify(payload),
+            signal: controller.signal,
+          });
+
+          if (res.ok) {
+            break;
+          }
+
+          // Retry on transient 503 (high demand) or 429 (rate limit)
+          if ((res.status === 503 || res.status === 429) && attempt < maxRetries) {
+            const delay = attempt * 1500;
+            await new Promise((resolve) => setTimeout(resolve, delay));
+            continue;
+          }
+
+          lastErrorText = await res.text().catch(() => "");
+          lastStatus = res.status;
           break;
         }
 
-        // Retry on transient 503 (high demand) or 429 (rate limit)
-        if ((res.status === 503 || res.status === 429) && attempt < maxRetries) {
-          const delay = attempt * 2000;
-          await new Promise((resolve) => setTimeout(resolve, delay));
-          continue;
+        if (res && res.ok) {
+          break;
         }
 
-        lastErrorText = await res.text().catch(() => "");
+        // If this model hit quota (429) or persistent 503, try next candidate model
+        if (candidateModels.length > 1 && (lastStatus === 429 || lastStatus === 503)) {
+          continue;
+        }
         break;
       }
 
       if (!res || !res.ok) {
-        const status = res?.status || 500;
+        const status = res?.status || lastStatus;
         const userMsg = cleanErrorMessage(lastErrorText, status);
 
         if (status === 401 || status === 403) {

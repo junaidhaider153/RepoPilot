@@ -208,9 +208,16 @@ export async function ingestRepository(
   input: RepositoryInput,
   options: IngestionOptions = {}
 ): Promise<BoundedContext> {
-  const maxFiles = options.maxFiles ?? 25;
-  const maxFileBytes = options.maxFileBytes ?? 49152;
-  const maxContextChars = options.maxContextChars ?? 120000;
+  const maxFiles =
+    options.maxFiles ??
+    (process.env.MAX_REPOSITORY_FILES ? parseInt(process.env.MAX_REPOSITORY_FILES, 10) : 25);
+  const maxFileBytes =
+    options.maxFileBytes ??
+    (process.env.MAX_FILE_BYTES ? parseInt(process.env.MAX_FILE_BYTES, 10) : 49152);
+  const maxContextChars =
+    options.maxContextChars ??
+    (process.env.MAX_CONTEXT_CHARS ? parseInt(process.env.MAX_CONTEXT_CHARS, 10) : 80000);
+  const maxSingleFileChars = 16384;
   const fetchOpts: FetchOptions = {
     githubToken: options.githubToken || process.env.GITHUB_TOKEN,
     timeoutMs: options.timeoutMs ?? 15000,
@@ -271,7 +278,12 @@ export async function ingestRepository(
     }
 
     // Sanitize null bytes or non-text characters
-    const cleanContent = content.replace(/\0/g, "");
+    let cleanContent = content.replace(/\0/g, "");
+    if (cleanContent.length > maxSingleFileChars) {
+      cleanContent =
+        cleanContent.slice(0, maxSingleFileChars) +
+        `\n... [File content bounded to ${maxSingleFileChars} chars to preserve context balance]`;
+    }
     const charLength = cleanContent.length;
 
     // Check if adding this file exceeds aggregate context
