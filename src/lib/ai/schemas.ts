@@ -131,7 +131,7 @@ export type InnovationBlueprint = z.infer<typeof InnovationBlueprintSchema>;
 /**
  * Helper to safely parse and extract JSON from model responses that might contain markdown fences.
  */
-export function extractAndParseJson<T>(rawText: string, schema: z.ZodSchema<T>): T {
+export function extractAndParseJson<T>(rawText: string, schema: z.ZodType<T, any, any>): T {
   let cleaned = rawText.trim();
 
   // Strip markdown code fences if present (e.g. ```json ... ```)
