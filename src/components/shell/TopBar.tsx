@@ -11,6 +11,7 @@ import {
   Compass,
   FileText,
   Sparkles,
+  RefreshCw,
 } from "lucide-react";
 import { ModelBadge } from "@/components/ui/ModelBadge";
 import { SessionItemData, SessionTab } from "./types";
@@ -22,6 +23,8 @@ export interface TopBarProps {
   onTabChange: (tab: SessionTab) => void;
   onOpenMobileMenu: () => void;
   onExportAll: () => void;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
   modelName?: string;
   className?: string;
 }
@@ -32,6 +35,8 @@ export function TopBar({
   onTabChange,
   onOpenMobileMenu,
   onExportAll,
+  onRefresh,
+  isRefreshing = false,
   modelName = "gemini-flash-lite-latest",
   className,
 }: TopBarProps) {
@@ -123,6 +128,18 @@ export function TopBar({
 
         {session && (
           <>
+            {onRefresh && (
+              <button
+                onClick={onRefresh}
+                disabled={isRefreshing}
+                title="Refresh repository files and architectural snapshot"
+                className="p-1.5 sm:px-2.5 sm:py-1 rounded border border-[#ebebeb] text-xs font-mono text-[#4d4d4d] hover:text-[#171717] hover:bg-[#fafafa] flex items-center gap-1.5 transition-colors disabled:opacity-50"
+              >
+                <RefreshCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin")} />
+                <span className="hidden sm:inline">{isRefreshing ? "Refreshing..." : "Refresh"}</span>
+              </button>
+            )}
+
             <button
               onClick={onExportAll}
               title="Export all documents as Markdown"

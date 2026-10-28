@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { answerRepositoryQuestion } from "@/lib/chat/answer-question";
-import { GitHubIngestionError } from "@/lib/github/types";
+import { BoundedContext, GitHubIngestionError } from "@/lib/github/types";
 import { AIProviderError } from "@/lib/ai/types";
-import { checkRateLimit } from "@/lib/security/rate-limiter";
+import { checkRateLimit, getRateLimitIdentifier } from "@/lib/security/rate-limiter";
+import { getAuthUser } from "@/lib/auth/get-user";
+import { getRepoSnapshot, insertSessionMessage } from "@/lib/persistence/store";
 
 export async function POST(req: NextRequest) {
   try {
-    const ip = req.headers.get("x-forwarded-for") || "local-client";
-    const rateCheck = checkRateLimit(ip);
+    const user = await getAuthUser();
+    const { identifier, limit } = getRateLimitIdentifier(req.headers, user?.id);
+    const rateCheck = checkRateLimit(identifier, limit);
     if (!rateCheck.success) {
       return NextResponse.json(
         {
@@ -39,6 +42,31 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const sessionId = typeof body.sessionId === "string" ? body.sessionId.trim() : null;
+
+    // Check if we have a cached snapshot for this session to avoid re-ingestion
+    let cachedContext: BoundedContext | undefined;
+    if (sessionId) {
+      const snapshot = await getRepoSnapshot(sessionId);
+      if (snapshot && snapshot.analysis_json) {
+        cachedContext = {
+          repository: snapshot.analysis_json.repository,
+          files: snapshot.analysis_json.analyzedFiles.map((f) => ({
+            path: f.path,
+            category: (f.category as any) || "core",
+            content: (f as any).content || `File: ${f.path}`,
+            sizeBytes: f.sizeBytes,
+          })),
+          totalChars: 5000,
+          treeTruncated: false,
+          totalTreeBlobs: snapshot.selected_paths.length,
+          analyzedFilesCount: snapshot.analysis_json.analyzedFiles.length,
+          detectedTechnologies: snapshot.analysis_json.detectedTechnologies || [],
+          coverageNotes: snapshot.coverage_notes,
+        };
+      }
+    }
+
     const history = Array.isArray(body.history)
       ? body.history
           .filter(
@@ -50,11 +78,30 @@ export async function POST(req: NextRequest) {
           .slice(-10)
       : [];
 
+    // Save user question to message persistence if sessionId is active
+    if (sessionId) {
+      await insertSessionMessage(sessionId, {
+        role: "user",
+        content: body.question,
+      });
+    }
+
     const answer = await answerRepositoryQuestion({
       url: body.url,
       question: body.question,
       history,
+      context: cachedContext,
     });
+
+    // Save assistant answer to message persistence
+    if (sessionId) {
+      await insertSessionMessage(sessionId, {
+        role: "assistant",
+        content: answer.answer,
+        evidence: answer.evidence,
+        confidence: answer.confidence,
+      });
+    }
 
     return NextResponse.json(answer, { status: 200 });
   } catch (err: unknown) {

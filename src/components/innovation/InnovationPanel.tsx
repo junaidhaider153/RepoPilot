@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { InnovationOpportunity } from "@/lib/ai/schemas";
 import { GeneratedBlueprintResult } from "@/lib/innovation/generate-blueprint";
 import { Badge } from "@/components/ui/Badge";
@@ -21,9 +21,10 @@ import {
 
 interface InnovationPanelProps {
   repoUrl: string;
+  sessionId?: string;
 }
 
-export function InnovationPanel({ repoUrl }: InnovationPanelProps) {
+export function InnovationPanel({ repoUrl, sessionId }: InnovationPanelProps) {
   const [opportunities, setOpportunities] = useState<InnovationOpportunity[] | null>(null);
   const [selectedOpp, setSelectedOpp] = useState<InnovationOpportunity | null>(null);
   const [blueprintResult, setBlueprintResult] = useState<GeneratedBlueprintResult | null>(null);
@@ -33,6 +34,32 @@ export function InnovationPanel({ repoUrl }: InnovationPanelProps) {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [copiedPrompt, setCopiedPrompt] = useState(false);
 
+  // Restore previous blueprint on mount if in a session
+  useEffect(() => {
+    if (!sessionId) return;
+    let isMounted = true;
+
+    fetch(`/api/sessions/${sessionId}/blueprint`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((resData) => {
+        if (!isMounted || !resData?.blueprint) return;
+        const bp = resData.blueprint;
+        if (bp.opportunities_json && Array.isArray(bp.opportunities_json) && bp.opportunities_json.length > 0) {
+          setOpportunities(bp.opportunities_json as InnovationOpportunity[]);
+          const selected = bp.opportunities_json[bp.selected_index || 0] || bp.opportunities_json[0];
+          setSelectedOpp(selected);
+        }
+        if (bp.plan_json) {
+          setBlueprintResult(bp.plan_json as GeneratedBlueprintResult);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, [sessionId]);
+
   async function handleLoadOpportunities() {
     setIsLoadingOpps(true);
     setErrorMsg(null);
@@ -41,7 +68,7 @@ export function InnovationPanel({ repoUrl }: InnovationPanelProps) {
       const res = await fetch("/api/innovation/opportunities", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: repoUrl }),
+        body: JSON.stringify({ url: repoUrl, sessionId }),
       });
 
       const data = await res.json();
@@ -69,6 +96,7 @@ export function InnovationPanel({ repoUrl }: InnovationPanelProps) {
         body: JSON.stringify({
           url: repoUrl,
           opportunity: opp,
+          sessionId,
         }),
       });
 

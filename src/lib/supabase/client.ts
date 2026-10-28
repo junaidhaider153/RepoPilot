@@ -12,3 +12,4 @@ export function isSupabaseConfigured(): boolean {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   return Boolean(url && key && !url.includes("placeholder") && !key.includes("placeholder"));
 }
+

@@ -21,9 +21,10 @@ export default function SessionLayout({
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
-  const { getSession, sessions } = useSessionContext();
+  const { getSession, sessions, updateSession } = useSessionContext();
 
   const [session, setSession] = useState(() => getSession(sessionId));
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Sync session when store updates
   useEffect(() => {
@@ -47,6 +48,34 @@ export default function SessionLayout({
       router.push(`/app/s/${sessionId}`);
     } else {
       router.push(`/app/s/${sessionId}/${tab}`);
+    }
+  }
+
+  async function handleRefresh() {
+    if (!session || isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      const res = await fetch(`/api/sessions/${session.id}/refresh`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error?.message || "Refresh failed");
+
+      if (data.snapshot?.analysis_json) {
+        updateSession(session.id, { analysisResult: data.snapshot.analysis_json });
+      }
+
+      toast({
+        title: "Repository Refreshed",
+        message: "Fetched latest files from GitHub and updated architectural snapshot.",
+        type: "success",
+      });
+    } catch (err: unknown) {
+      toast({
+        title: "Refresh Error",
+        message: err instanceof Error ? err.message : "Failed to refresh repository.",
+        type: "error",
+      });
+    } finally {
+      setIsRefreshing(false);
     }
   }
 
@@ -110,6 +139,8 @@ Exported At: ${new Date().toISOString()}
           mobileTrigger?.click();
         }}
         onExportAll={handleExportAll}
+        onRefresh={handleRefresh}
+        isRefreshing={isRefreshing}
       />
 
       {/* Tab Viewport */}

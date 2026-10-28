@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateInnovationBlueprint } from "@/lib/innovation/generate-blueprint";
-import { GitHubIngestionError } from "@/lib/github/types";
+import { BoundedContext, GitHubIngestionError } from "@/lib/github/types";
 import { AIProviderError } from "@/lib/ai/types";
-import { checkRateLimit } from "@/lib/security/rate-limiter";
+import { checkRateLimit, getRateLimitIdentifier } from "@/lib/security/rate-limiter";
+import { getAuthUser } from "@/lib/auth/get-user";
+import { getRepoSnapshot, getSessionBlueprint, upsertSessionBlueprint } from "@/lib/persistence/store";
 
 export async function POST(req: NextRequest) {
   try {
-    const ip = req.headers.get("x-forwarded-for") || "local-client";
-    const rateCheck = checkRateLimit(ip);
+    const user = await getAuthUser();
+    const { identifier, limit } = getRateLimitIdentifier(req.headers, user?.id);
+    const rateCheck = checkRateLimit(identifier, limit);
     if (!rateCheck.success) {
       return NextResponse.json(
         {
@@ -40,10 +43,44 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const sessionId = typeof body.sessionId === "string" ? body.sessionId.trim() : null;
+
+    let cachedContext: BoundedContext | undefined;
+    if (sessionId) {
+      const snapshot = await getRepoSnapshot(sessionId);
+      if (snapshot && snapshot.analysis_json) {
+        cachedContext = {
+          repository: snapshot.analysis_json.repository,
+          files: snapshot.analysis_json.analyzedFiles.map((f) => ({
+            path: f.path,
+            category: (f.category as any) || "core",
+            content: (f as any).content || `File: ${f.path}`,
+            sizeBytes: f.sizeBytes,
+          })),
+          totalChars: 5000,
+          treeTruncated: false,
+          totalTreeBlobs: snapshot.selected_paths.length,
+          analyzedFilesCount: snapshot.analysis_json.analyzedFiles.length,
+          detectedTechnologies: snapshot.analysis_json.detectedTechnologies || [],
+          coverageNotes: snapshot.coverage_notes,
+        };
+      }
+    }
+
     const result = await generateInnovationBlueprint({
       url: body.url,
       opportunity: body.opportunity,
+      context: cachedContext,
     });
+
+    if (sessionId) {
+      const existing = await getSessionBlueprint(sessionId);
+      await upsertSessionBlueprint(sessionId, {
+        opportunities: existing?.opportunities_json || [body.opportunity],
+        selectedIndex: typeof body.selectedIndex === "number" ? body.selectedIndex : 0,
+        planJson: result,
+      });
+    }
 
     return NextResponse.json(result, { status: 200 });
   } catch (err: unknown) {

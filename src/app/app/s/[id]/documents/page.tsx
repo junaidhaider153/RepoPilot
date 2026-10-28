@@ -26,7 +26,7 @@ export default function SessionDocumentsPage({
 
   return (
     <div className="max-w-[1000px] w-full mx-auto px-4 sm:px-6 py-6">
-      <DocumentsPanel repoUrl={session.repoUrl} />
+      <DocumentsPanel repoUrl={session.repoUrl} sessionId={session.id} />
     </div>
   );
 }

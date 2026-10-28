@@ -1,22 +1,79 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { GeneratedDocumentsResult } from "@/lib/documents/generate-documents";
 import { Copy, Check, Download, FileText, Terminal, Layers, Sparkles, Loader2, AlertCircle, RotateCcw } from "lucide-react";
 
 interface DocumentsPanelProps {
   repoUrl: string;
+  sessionId?: string;
 }
 
 type DocTab = "prd" | "trd" | "tdd" | "prompt";
 
-export function DocumentsPanel({ repoUrl }: DocumentsPanelProps) {
+export function DocumentsPanel({ repoUrl, sessionId }: DocumentsPanelProps) {
   const [activeTab, setActiveTab] = useState<DocTab>("prd");
   const [data, setData] = useState<GeneratedDocumentsResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [userIdea, setUserIdea] = useState("");
   const [copiedDoc, setCopiedDoc] = useState<string | null>(null);
+
+  // Restore previously generated documents on mount if in a session
+  useEffect(() => {
+    if (!sessionId) return;
+    let isMounted = true;
+
+    fetch(`/api/sessions/${sessionId}/documents`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((resData) => {
+        if (!isMounted || !resData?.documents || !Array.isArray(resData.documents)) return;
+        const docs = resData.documents;
+        if (docs.length > 0) {
+          const prdDoc = docs.find((d: any) => d.kind === "prd");
+          const trdDoc = docs.find((d: any) => d.kind === "trd");
+          const tddDoc = docs.find((d: any) => d.kind === "tdd");
+          const promptDoc = docs.find((d: any) => d.kind === "prompt");
+
+          setData({
+            markdown: {
+              prd: prdDoc?.content_md || "",
+              trd: trdDoc?.content_md || "",
+              tdd: tddDoc?.content_md || "",
+              prompt: promptDoc?.content_md || "",
+              fullBundle: [
+                prdDoc?.content_md,
+                trdDoc?.content_md,
+                tddDoc?.content_md,
+                promptDoc?.content_md,
+              ]
+                .filter(Boolean)
+                .join("\n\n---\n\n"),
+            },
+            spec: {
+              projectName: "Project Specification",
+              coreConcept: "",
+              targetAudience: [],
+              keyDifferentiators: [],
+              suggestedStack: [],
+              coreCapabilities: [],
+            },
+            documents: {
+              prd: { title: "PRD", tagline: "", problemStatement: "", targetUsers: [], goals: [], userStories: [], acceptanceCriteria: [] },
+              trd: { title: "TRD", technologyStack: [], architecturePattern: "", constraintsAndLimits: [], securityAndPrivacy: [], testingStrategy: [] },
+              tdd: { title: "TDD", components: [], dataModels: [], requestFlows: [], risksAndMitigations: [] },
+              codingAgentPrompt: promptDoc?.content_md || "",
+            },
+            referenceRepo: repoUrl,
+          });
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, [sessionId, repoUrl]);
 
   async function handleGenerate() {
     setIsLoading(true);
@@ -29,6 +86,7 @@ export function DocumentsPanel({ repoUrl }: DocumentsPanelProps) {
         body: JSON.stringify({
           url: repoUrl,
           userIdea: userIdea.trim() || undefined,
+          sessionId,
         }),
       });
 

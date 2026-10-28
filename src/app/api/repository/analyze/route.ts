@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { analyzeRepository } from "@/lib/analysis/analyze-repository";
 import { GitHubIngestionError } from "@/lib/github/types";
 import { AIProviderError } from "@/lib/ai/types";
-import { checkRateLimit } from "@/lib/security/rate-limiter";
+import { checkRateLimit, getRateLimitIdentifier } from "@/lib/security/rate-limiter";
+import { getAuthUser } from "@/lib/auth/get-user";
+import { upsertRepoSnapshot } from "@/lib/persistence/store";
 
 export async function POST(req: NextRequest) {
   try {
-    const ip = req.headers.get("x-forwarded-for") || "local-client";
-    const rateCheck = checkRateLimit(ip);
+    const user = await getAuthUser();
+    const { identifier, limit } = getRateLimitIdentifier(req.headers, user?.id);
+    const rateCheck = checkRateLimit(identifier, limit);
     if (!rateCheck.success) {
       return NextResponse.json(
         {
@@ -35,6 +38,17 @@ export async function POST(req: NextRequest) {
     }
 
     const result = await analyzeRepository(body.url);
+
+    // If sessionId provided, cache the snapshot
+    if (typeof body.sessionId === "string" && body.sessionId.trim().length > 0) {
+      await upsertRepoSnapshot(body.sessionId, {
+        defaultBranch: result.repository.defaultBranch || "main",
+        selectedPaths: result.analyzedFiles.map((f) => f.path),
+        analysisResult: result,
+        coverageNotes: result.coverageNotes || [],
+      });
+    }
+
     return NextResponse.json(result, { status: 200 });
   } catch (err: unknown) {
     if (err instanceof GitHubIngestionError) {

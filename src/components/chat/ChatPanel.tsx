@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ChatAnswer } from "@/lib/ai/schemas";
 import { Badge } from "@/components/ui/Badge";
 import { Send, FileCode, AlertCircle, Sparkles, Loader2 } from "lucide-react";
@@ -14,6 +14,7 @@ interface ChatMessageItem {
 
 interface ChatPanelProps {
   repoUrl: string;
+  sessionId?: string;
 }
 
 const STARTER_QUESTIONS = [
@@ -23,11 +24,46 @@ const STARTER_QUESTIONS = [
   "Does this project include automated tests or CI/CD pipelines?",
 ];
 
-export function ChatPanel({ repoUrl }: ChatPanelProps) {
+export function ChatPanel({ repoUrl, sessionId }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessageItem[]>([]);
   const [inputQuestion, setInputQuestion] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Restore previous messages from persistence if in a session
+  useEffect(() => {
+    if (!sessionId) return;
+    let isMounted = true;
+
+    fetch(`/api/sessions/${sessionId}/messages`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!isMounted || !data?.messages || !Array.isArray(data.messages)) return;
+        if (data.messages.length > 0) {
+          setMessages(
+            data.messages.map((m: any) => ({
+              id: m.id,
+              role: m.role,
+              content: m.content,
+              answerData:
+                m.role === "assistant"
+                  ? {
+                      answer: m.content,
+                      evidence: m.evidence_json || [],
+                      confidence: m.confidence || "medium",
+                      insufficientEvidence: false,
+                    }
+                  : undefined,
+            }))
+          );
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, [sessionId]);
 
   async function handleSend(questionText?: string) {
     const q = (questionText || inputQuestion).trim();
@@ -58,6 +94,7 @@ export function ChatPanel({ repoUrl }: ChatPanelProps) {
           url: repoUrl,
           question: q,
           history,
+          sessionId,
         }),
       });
 
