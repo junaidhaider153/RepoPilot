@@ -1,16 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { Eye, EyeOff, AlertCircle, CheckCircle2, Github, Mail } from "lucide-react";
+import { Eye, EyeOff, AlertCircle, CheckCircle2, Github, Mail, RefreshCw } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function SignupPage() {
   const router = useRouter();
-  const { signUpWithEmail, signInWithOAuth } = useAuth();
+  const { signUpWithEmail, resendSignUpEmail, signInWithOAuth } = useAuth();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -19,6 +20,34 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // Resend state
+  const [isResending, setIsResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendStatus, setResendStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
+  async function handleResend() {
+    if (isResending || resendCooldown > 0) return;
+    setIsResending(true);
+    setResendStatus(null);
+
+    const res = await resendSignUpEmail(email);
+    setIsResending(false);
+    if (res.success) {
+      setResendStatus("Confirmation email resent successfully! Please check your inbox and Spam folder.");
+      setResendCooldown(60);
+    } else {
+      setResendStatus(res.error || "Failed to resend confirmation email.");
+    }
+  }
 
   // Live password checklist (minimum 10 characters per Pages_UI.md §5.3)
   const isLengthValid = password.length >= 10;
@@ -68,18 +97,72 @@ export default function SignupPage() {
 
       <div className="w-full max-w-[400px] bg-white border border-[#ebebeb] rounded-lg shadow-sm p-6 sm:p-8 space-y-6">
         {isSubmitted ? (
-          /* Confirmation State */
-          <div className="text-center space-y-4 py-4 animate-fadeIn">
+          /* Confirmation State with Resend Option */
+          <div className="text-center space-y-4 py-2 animate-fadeIn">
             <div className="w-12 h-12 rounded-full bg-[#f0fdf4] text-[#16a34a] mx-auto flex items-center justify-center">
               <Mail className="w-6 h-6" />
             </div>
             <div className="space-y-1">
               <h2 className="text-lg font-semibold text-[#171717]">Check your email</h2>
               <p className="text-xs text-[#666666] leading-relaxed">
-                We&apos;ve sent a confirmation link to <span className="font-mono text-[#171717]">{email}</span>. Please click the link to activate your account.
+                We&apos;ve sent a confirmation link to <span className="font-mono text-[#171717] font-medium">{email}</span>. Please click the link to activate your account.
               </p>
             </div>
-            <div className="pt-2">
+
+            <div className="p-3 bg-[#f8fafc] border border-[#e2e8f0] rounded-md text-left text-xs text-[#64748b] space-y-1.5">
+              <p className="font-medium text-[#334155] flex items-center gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 text-[#eab308] shrink-0" />
+                <span>Didn&apos;t receive the email?</span>
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-[11px] leading-relaxed text-[#64748b]">
+                <li>Check your <strong>Spam / Junk</strong> folder or <strong>Promotions</strong> tab.</li>
+                <li>Free tier authentication mailers may take up to 2 minutes to deliver.</li>
+              </ul>
+            </div>
+
+            {resendStatus && (
+              <p
+                role="status"
+                className={cn(
+                  "text-xs font-mono p-2.5 rounded text-left",
+                  resendStatus.includes("success")
+                    ? "bg-[#f0fdf4] text-[#16a34a] border border-[#dcfce7]"
+                    : "bg-[#fef2f2] text-[#dc2626] border border-[#fee2e2]"
+                )}
+              >
+                {resendStatus}
+              </p>
+            )}
+
+            <div className="space-y-2 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                aria-label="Resend confirmation email"
+                className="w-full justify-center text-xs font-mono"
+                onClick={handleResend}
+                disabled={isResending || resendCooldown > 0}
+                isLoading={isResending}
+              >
+                {resendCooldown > 0
+                  ? `Resend available in ${resendCooldown}s`
+                  : "Resend confirmation email"}
+              </Button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSubmitted(false);
+                  setResendStatus(null);
+                }}
+                className="text-xs font-mono text-[#666666] hover:text-[#171717] underline block mx-auto pt-1"
+              >
+                Use a different email address
+              </button>
+            </div>
+
+            <div className="pt-2 border-t border-[#f1f5f9]">
               <Link
                 href="/login"
                 className="text-xs font-mono text-[#171717] underline hover:text-[#000000]"

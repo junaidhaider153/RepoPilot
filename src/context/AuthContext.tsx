@@ -17,6 +17,7 @@ interface AuthContextType {
     email: string,
     password: string
   ) => Promise<{ success: boolean; requiresConfirmation?: boolean; error?: string }>;
+  resendSignUpEmail: (email: string) => Promise<{ success: boolean; error?: string }>;
   signInWithOAuth: (provider: "github") => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
   sendPasswordReset: (email: string) => Promise<{ success: boolean; error?: string }>;
@@ -159,6 +160,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [configured, supabase]
   );
 
+  const resendSignUpEmail = useCallback(
+    async (email: string): Promise<{ success: boolean; error?: string }> => {
+      if (!configured) {
+        return { success: true };
+      }
+
+      try {
+        const { error } = await supabase.auth.resend({
+          type: "signup",
+          email: email.trim(),
+          options: {
+            emailRedirectTo: `${typeof window !== "undefined" ? window.location.origin : ""}/app`,
+          },
+        });
+
+        if (error) {
+          return { success: false, error: error.message || "Failed to resend confirmation email." };
+        }
+
+        return { success: true };
+      } catch {
+        return { success: false, error: "Unable to contact authentication server. Please try again." };
+      }
+    },
+    [configured, supabase]
+  );
+
   const signInWithOAuth = useCallback(
     async (provider: "github"): Promise<{ success: boolean; error?: string }> => {
       if (!configured) {
@@ -262,6 +290,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isConfigured: configured,
       signInWithEmail,
       signUpWithEmail,
+      resendSignUpEmail,
       signInWithOAuth,
       signOut,
       sendPasswordReset,
@@ -275,6 +304,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       configured,
       signInWithEmail,
       signUpWithEmail,
+      resendSignUpEmail,
       signInWithOAuth,
       signOut,
       sendPasswordReset,

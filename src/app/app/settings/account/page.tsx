@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   KeyRound,
   Check,
+  Mail,
 } from "lucide-react";
 
 function AccountSettingsContent() {
@@ -56,6 +57,17 @@ function AccountSettingsContent() {
   // Email change state
   const [newEmail, setNewEmail] = useState("");
   const [isRequestingEmail, setIsRequestingEmail] = useState(false);
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
+  const [isResendingEmail, setIsResendingEmail] = useState(false);
+  const [emailCooldown, setEmailCooldown] = useState(0);
+
+  useEffect(() => {
+    if (emailCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setEmailCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [emailCooldown]);
 
   // Danger zone state
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -160,9 +172,12 @@ function AccountSettingsContent() {
         });
         return;
       }
+      const requestedEmail = newEmail.trim();
+      setPendingVerificationEmail(requestedEmail);
+      setEmailCooldown(0);
       toast({
         title: "Verification email sent",
-        message: data?.message || `A confirmation link was sent to ${newEmail}. Please verify to complete the change.`,
+        message: data?.message || `A confirmation link was sent to ${requestedEmail}. Please verify to complete the change.`,
         type: "success",
       });
       setNewEmail("");
@@ -174,6 +189,42 @@ function AccountSettingsContent() {
       });
     } finally {
       setIsRequestingEmail(false);
+    }
+  }
+
+  async function handleResendVerificationEmail() {
+    if (!pendingVerificationEmail || isResendingEmail || emailCooldown > 0) return;
+
+    setIsResendingEmail(true);
+    try {
+      const res = await fetch("/api/account/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newEmail: pendingVerificationEmail }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast({
+          title: "Resend failed",
+          message: data?.error?.message || "Failed to resend verification email.",
+          type: "error",
+        });
+        return;
+      }
+      toast({
+        title: "Verification email resent",
+        message: `A new verification email was dispatched to ${pendingVerificationEmail}. Please check your inbox and Spam folder.`,
+        type: "success",
+      });
+      setEmailCooldown(30);
+    } catch (err: unknown) {
+      toast({
+        title: "Resend failed",
+        message: err instanceof Error ? err.message : "Network error contacting server.",
+        type: "error",
+      });
+    } finally {
+      setIsResendingEmail(false);
     }
   }
 
@@ -299,6 +350,49 @@ function AccountSettingsContent() {
           >
             Update Email Address
           </Button>
+
+          {pendingVerificationEmail && (
+            <div className="p-3.5 rounded-lg border border-[#bfdbfe] bg-[#eff6ff] space-y-2.5 animate-fadeIn">
+              <div className="flex items-start gap-2.5">
+                <Mail className="w-4 h-4 text-[#2563eb] shrink-0 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-xs font-semibold text-[#1e40af]">
+                    Verification email dispatched to {pendingVerificationEmail}
+                  </p>
+                  <p className="text-[11px] text-[#3b82f6] leading-relaxed">
+                    Please click the verification link in the email to activate your new address. Link expires in 24 hours.
+                  </p>
+                  <p className="text-[10px] text-[#64748b]">
+                    💡 Check your <strong>Spam / Junk</strong> folder. If you sent the verification to your own sender Gmail, also check <strong>All Mail</strong> or <strong>Sent</strong>.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1 border-t border-[#dbeafe]">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  aria-label="Resend verification email"
+                  onClick={handleResendVerificationEmail}
+                  disabled={isResendingEmail || emailCooldown > 0}
+                  isLoading={isResendingEmail}
+                  className="bg-white text-xs font-mono"
+                >
+                  {emailCooldown > 0
+                    ? `Resend available in ${emailCooldown}s`
+                    : "Resend verification email"}
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => setPendingVerificationEmail(null)}
+                  className="text-xs font-mono text-[#64748b] hover:text-[#171717] px-2 py-1"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
         </form>
       </div>
 
