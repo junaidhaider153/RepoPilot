@@ -12,6 +12,27 @@ import { detectTechnologies } from "./detect-tech";
 
 const GITHUB_API_BASE = "https://api.github.com";
 
+declare global {
+  var __repopilot_ingestionCache: Map<string, { context: BoundedContext; cachedAt: number }> | undefined;
+}
+
+export function getIngestionCacheKey(input: RepositoryInput, options: IngestionOptions = {}): string {
+  return `${input.owner.toLowerCase()}/${input.repo.toLowerCase()}:${options.maxFiles ?? ""}:${options.maxFileBytes ?? ""}:${options.maxContextChars ?? ""}`;
+}
+
+export function clearIngestionCache(): void {
+  if (globalThis.__repopilot_ingestionCache) {
+    globalThis.__repopilot_ingestionCache.clear();
+  }
+}
+
+function getIngestionCache(): Map<string, { context: BoundedContext; cachedAt: number }> {
+  if (!globalThis.__repopilot_ingestionCache) {
+    globalThis.__repopilot_ingestionCache = new Map();
+  }
+  return globalThis.__repopilot_ingestionCache;
+}
+
 interface FetchOptions {
   githubToken?: string;
   timeoutMs?: number;
@@ -208,6 +229,14 @@ export async function ingestRepository(
   input: RepositoryInput,
   options: IngestionOptions = {}
 ): Promise<BoundedContext> {
+  const cacheKey = getIngestionCacheKey(input, options);
+  const cache = getIngestionCache();
+  const cached = cache.get(cacheKey);
+  const TTL_MS = 10 * 60 * 1000; // 10 minutes cache
+  if (cached && Date.now() - cached.cachedAt < TTL_MS) {
+    return cached.context;
+  }
+
   const envMaxFiles = parseInt(process.env.MAX_REPOSITORY_FILES || "", 10);
   const maxFiles =
     options.maxFiles ?? (Number.isFinite(envMaxFiles) && envMaxFiles > 0 ? envMaxFiles : 25);
@@ -339,7 +368,7 @@ export async function ingestRepository(
     `Bounded context assembled: ${retrievedFiles.length} files (${Math.round(currentTotalChars / 1024)} KB of text context) from ${items.filter((i) => i.type === "blob").length} total files.`
   );
 
-  return {
+  const boundedContext: BoundedContext = {
     repository,
     files: retrievedFiles,
     totalChars: currentTotalChars,
@@ -349,5 +378,9 @@ export async function ingestRepository(
     detectedTechnologies,
     coverageNotes,
   };
+
+  cache.set(cacheKey, { context: boundedContext, cachedAt: Date.now() });
+
+  return boundedContext;
 }
 

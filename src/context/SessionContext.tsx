@@ -9,6 +9,23 @@ export interface ExtendedSessionItem extends SessionItemData {
   analysisResult?: CompleteAnalysisResult;
 }
 
+/**
+ * Sanitizes session for lightweight localStorage caching, omitting heavy
+ * analysisResult payloads to eliminate QuotaExceededError risks.
+ */
+export function sanitizeSessionForStorage(session: ExtendedSessionItem): ExtendedSessionItem {
+  return {
+    id: session.id,
+    repoUrl: session.repoUrl,
+    owner: session.owner,
+    repo: session.repo,
+    title: session.title,
+    pinned: session.pinned,
+    createdAt: session.createdAt,
+    updatedAt: session.updatedAt,
+  };
+}
+
 const DEFAULT_SESSIONS: ExtendedSessionItem[] = [];
 
 const FALLBACK_USER: UserProfileData = {
@@ -77,11 +94,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
   }, [storageKey]);
 
-  // Sync sessions to user-keyed localStorage cache
+  // Sync sessions to user-keyed localStorage cache (lightweight metadata only)
   useEffect(() => {
     if (!isLoaded) return;
     try {
-      window.localStorage.setItem(storageKey, JSON.stringify(sessions));
+      window.localStorage.setItem(
+        storageKey,
+        JSON.stringify(sessions.map(sanitizeSessionForStorage))
+      );
     } catch {
       // Ignore storage errors (quota, etc.)
     }
