@@ -146,8 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         if (error) {
-          // Never reveal if email exists
-          return { success: false, error: "Unable to complete registration. Please try again." };
+          return { success: false, error: error.message || "Unable to complete registration. Please try again." };
         }
 
         // If user is returned without active session, confirmation email was sent
@@ -175,7 +174,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         if (error) {
-          return { success: false, error: "Failed to initiate GitHub authentication." };
+          return { success: false, error: error.message || "Failed to initiate GitHub authentication." };
         }
 
         return { success: true };

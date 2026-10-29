@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { isSupabaseConfigured } from "./client";
+import { isSupabaseConfigured, sanitizeSupabaseUrl } from "./client";
 import { sanitizeRedirectPath } from "@/lib/security/redirect";
 
 export async function updateSession(request: NextRequest) {
@@ -35,8 +35,8 @@ export async function updateSession(request: NextRequest) {
     return supabaseResponse;
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const supabaseUrl = sanitizeSupabaseUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  const supabaseKey = (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "").trim();
 
   const supabase = createServerClient(supabaseUrl, supabaseKey, {
     cookies: {
