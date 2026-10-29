@@ -10,10 +10,15 @@ export function MarketingHeader() {
           className="text-sm font-bold tracking-tight text-neutral-900 flex items-center gap-2 group transition-opacity"
           aria-label="RepoPilot Product Home"
         >
-          <div className="w-6 h-6 rounded-md bg-neutral-950 text-white flex items-center justify-center text-[10px] font-black shadow-xs">
-            ▲
+          <div className="w-7 h-7 rounded-lg bg-white p-0.5 flex items-center justify-center border border-neutral-200 shadow-2xs overflow-hidden shrink-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/brand/icon.jpg"
+              alt="RepoPilot"
+              className="w-full h-full object-contain rounded-md"
+            />
           </div>
-          <span>RepoPilot</span>
+          <span className="font-bold tracking-tight text-neutral-950">RepoPilot</span>
         </Link>
         <span className="hidden sm:inline-block text-[10px] font-mono font-medium text-neutral-500 uppercase tracking-widest pl-2.5 border-l border-neutral-200">
           Product

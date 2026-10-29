@@ -7,6 +7,11 @@ export const metadata: Metadata = {
   title: "RepoPilot — From codebase to blueprint",
   description:
     "Analyze public GitHub codebases, explore architecture grounded in repository files, generate project specifications, and produce actionable innovation blueprints.",
+  icons: {
+    icon: "/brand/icon.jpg",
+    shortcut: "/brand/icon.jpg",
+    apple: "/brand/icon.jpg",
+  },
 };
 
 export default function RootLayout({

@@ -127,8 +127,9 @@ export default function NewSessionPage() {
             <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-64 h-64 bg-white/5 rounded-full blur-3xl pointer-events-none" />
             
             <div className="inline-flex items-center justify-center space-x-2.5 mb-3 relative z-10">
-              <div className="w-8 h-8 rounded-xl bg-white p-1 flex items-center justify-center shadow-inner overflow-hidden border border-neutral-200">
-                <span className="text-black font-black text-sm">▲</span>
+              <div className="w-9 h-9 rounded-xl bg-white p-0.5 flex items-center justify-center shadow-inner overflow-hidden border border-neutral-200">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/brand/icon.jpg" alt="RepoPilot" className="w-full h-full object-contain rounded-lg" />
               </div>
               <span className="text-white font-bold text-lg tracking-tight">RepoPilot</span>
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono font-medium bg-neutral-800 text-neutral-300 border border-neutral-700">

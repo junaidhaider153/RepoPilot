@@ -149,10 +149,14 @@ export function Sidebar({
           {!isCollapsed ? (
             <>
               <div className="flex items-center gap-2">
-                <span className="font-mono font-bold text-sm tracking-tight text-[#171717]">
-                  ▲ RepoPilot
+                <div className="w-6 h-6 rounded-md bg-white p-0.5 flex items-center justify-center border border-neutral-200 overflow-hidden shadow-2xs shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/brand/icon.jpg" alt="RepoPilot" className="w-full h-full object-contain rounded" />
+                </div>
+                <span className="font-bold text-sm tracking-tight text-neutral-900">
+                  RepoPilot
                 </span>
-                <span className="text-[10px] font-mono uppercase px-1.5 py-0.2 rounded border border-[#ebebeb] bg-[#fafafa] text-[#666666]">
+                <span className="text-[10px] font-mono uppercase px-1.5 py-0.2 rounded border border-neutral-200 bg-neutral-50 text-neutral-500 font-medium">
                   beta
                 </span>
               </div>
@@ -172,7 +176,10 @@ export function Sidebar({
               title="Expand sidebar ([)"
               className="w-full flex items-center justify-center p-1 text-[#171717] hover:bg-[#fafafa] rounded transition-colors focus:outline-none focus:ring-1 focus:ring-[#171717]"
             >
-              <span className="font-mono font-bold text-sm">▲</span>
+              <div className="w-6 h-6 rounded-md bg-white p-0.5 flex items-center justify-center border border-neutral-200 overflow-hidden shadow-2xs">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/brand/icon.jpg" alt="RepoPilot" className="w-full h-full object-contain rounded" />
+              </div>
             </button>
           )}
         </div>

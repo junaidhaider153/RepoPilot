@@ -149,6 +149,12 @@ export default function HomePage() {
           <div className="max-w-3xl mx-auto space-y-12 py-6 sm:py-10 text-center animate-fadeIn">
             {/* Hero Heading */}
             <div className="space-y-4">
+              <div className="flex justify-center mb-1">
+                <div className="w-16 h-16 rounded-2xl bg-white p-1.5 flex items-center justify-center border border-neutral-200/90 shadow-email-card overflow-hidden hover:scale-105 transition-transform duration-200">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/brand/icon.jpg" alt="RepoPilot Robot Mascot" className="w-full h-full object-contain rounded-xl" />
+                </div>
+              </div>
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-neutral-200 text-[11px] font-mono text-neutral-700 shadow-2xs">
                 <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
                 <span>RepoPilot • Evidence-Grounded AI</span>
