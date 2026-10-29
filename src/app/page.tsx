@@ -22,8 +22,8 @@ import {
   ArrowRight,
   ExternalLink,
   Info,
-  Shield,
-  Zap,
+  ShieldCheck,
+  CheckCircle2,
 } from "lucide-react";
 
 type ActiveTab = "chat" | "overview" | "documents" | "innovation";
@@ -56,9 +56,9 @@ export default function HomePage() {
 
   if (user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#fafafa]">
-        <div className="flex items-center gap-2 text-xs font-mono text-[#666666]">
-          <Loader2 className="w-4 h-4 animate-spin text-[#171717]" />
+      <div className="min-h-screen flex items-center justify-center bg-neutral-100/60">
+        <div className="flex items-center gap-2 text-xs font-mono text-neutral-600">
+          <Loader2 className="w-4 h-4 animate-spin text-neutral-900" />
           <span>Redirecting to your workspace...</span>
         </div>
       </div>
@@ -115,14 +115,14 @@ export default function HomePage() {
     : "";
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#fafafa]">
+    <div className="min-h-screen flex flex-col bg-neutral-100/60 text-neutral-900 antialiased">
       <MarketingHeader />
 
       {/* Guest Session Persistent Banner when workspace active */}
       {analysisResult && (
-        <div className="bg-[#f0f9ff] border-b border-[#bae6fd] px-4 py-2.5 text-xs text-[#0369a1] flex flex-col sm:flex-row items-center justify-between gap-2">
+        <div className="bg-sky-50 border-b border-sky-200 px-4 py-2.5 text-xs text-sky-800 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Info className="w-4 h-4 shrink-0 text-[#0284c7]" />
+            <Info className="w-4 h-4 shrink-0 text-sky-600" />
             <span>
               <strong>Guest Workspace:</strong> This temporary session is kept in your browser.{" "}
               <span className="hidden sm:inline">
@@ -133,7 +133,7 @@ export default function HomePage() {
           <div className="flex items-center gap-3 shrink-0">
             <Link
               href="/login"
-              className="text-xs font-semibold text-[#0369a1] hover:underline"
+              className="text-xs font-semibold text-sky-900 hover:underline"
             >
               Sign in to save this session →
             </Link>
@@ -141,28 +141,28 @@ export default function HomePage() {
         </div>
       )}
 
-      <main className="flex-1 max-w-[1280px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-1 max-w-[1280px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {!analysisResult || !analyzedUrl ? (
           /* ============================================================ */
           /* Initial Chat-First Guest Entry & Centered Composer           */
           /* ============================================================ */
-          <div className="max-w-3xl mx-auto space-y-12 py-8 sm:py-16 text-center">
+          <div className="max-w-3xl mx-auto space-y-12 py-6 sm:py-10 text-center animate-fadeIn">
             {/* Hero Heading */}
             <div className="space-y-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-[#ebebeb] text-[11px] font-mono text-[#666666] shadow-2xs">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#297a3a]"></span>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-neutral-200 text-[11px] font-mono text-neutral-700 shadow-2xs">
+                <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
                 <span>RepoPilot • Evidence-Grounded AI</span>
               </div>
-              <h1 className="text-4xl sm:text-5xl font-normal tracking-tight text-[#171717] leading-tight">
+              <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-neutral-950 leading-[1.15]">
                 From codebase to blueprint.
               </h1>
-              <p className="text-base sm:text-lg text-[#666666] max-w-xl mx-auto font-normal leading-relaxed">
-                Inspect public GitHub repositories with bounded context extraction, citations, and actionable innovation blueprints.
+              <p className="text-base sm:text-lg text-neutral-600 max-w-xl mx-auto font-normal leading-relaxed">
+                Inspect public GitHub repositories with bounded context extraction, verified citations, and actionable innovation blueprints.
               </p>
             </div>
 
-            {/* Centered Composer Card */}
-            <div className="p-4 sm:p-6 rounded-xl border border-[#ebebeb] bg-white shadow-xs space-y-4 text-left">
+            {/* Centered Composer Card (styled like code.html 580px container) */}
+            <div className="p-6 sm:p-8 rounded-2xl border border-neutral-200/90 bg-white shadow-email-card space-y-5 text-left transition-all">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -171,7 +171,7 @@ export default function HomePage() {
                 className="flex flex-col sm:flex-row gap-3"
               >
                 <div className="relative flex-1">
-                  <Search className="w-4 h-4 text-[#8f8f8f] absolute left-3.5 top-3.5 pointer-events-none" />
+                  <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 top-3.5 pointer-events-none" />
                   <input
                     type="url"
                     value={repoUrl}
@@ -179,13 +179,13 @@ export default function HomePage() {
                     placeholder="Paste a GitHub URL to start"
                     aria-label="GitHub Repository URL"
                     disabled={isLoading}
-                    className="w-full pl-10 pr-3 py-2.5 text-sm bg-white border border-[#ebebeb] rounded-lg text-[#171717] placeholder-[#a8a8a8] font-mono focus:border-[#171717] focus:outline-none transition-colors"
+                    className="w-full pl-10 pr-4 py-3 text-xs sm:text-sm bg-neutral-50/70 border border-neutral-300 rounded-xl text-neutral-900 placeholder-neutral-400 font-mono focus:bg-white focus:border-neutral-900 focus:ring-2 focus:ring-neutral-900/10 focus:outline-none transition-all"
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={isLoading || !repoUrl.trim()}
-                  className="px-5 py-2.5 bg-[#171717] text-white text-xs font-medium rounded-lg hover:bg-[#000000] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors shrink-0"
+                  className="px-6 py-3 bg-neutral-900 text-white text-xs font-semibold rounded-xl hover:bg-black disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md hover:shadow-lg transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0 shrink-0"
                 >
                   {isLoading ? (
                     <>
@@ -202,8 +202,8 @@ export default function HomePage() {
               </form>
 
               {/* Sample-repo chips directly under composer */}
-              <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#f5f5f5] text-xs font-mono">
-                <span className="text-[#8f8f8f]">Try sample repository:</span>
+              <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-neutral-100 text-xs font-mono">
+                <span className="text-neutral-500 font-medium">Try sample repository:</span>
                 {DEMO_REPOSITORIES.map((repo) => (
                   <button
                     key={repo.label}
@@ -212,7 +212,7 @@ export default function HomePage() {
                       handleAnalyze(repo.url);
                     }}
                     disabled={isLoading}
-                    className="px-2.5 py-1 rounded bg-[#fafafa] text-[#171717] hover:bg-[#ebebeb] border border-[#ebebeb] transition-colors"
+                    className="px-3 py-1 rounded-lg bg-neutral-50 text-neutral-800 hover:bg-neutral-100 border border-neutral-200 transition-colors shadow-2xs font-mono text-xs"
                   >
                     {repo.label}
                   </button>
@@ -221,16 +221,16 @@ export default function HomePage() {
 
               {/* Loading status message */}
               {isLoading && (
-                <div className="p-3 rounded-lg bg-[#fafafa] border border-[#ebebeb] flex items-center gap-2 text-xs font-mono text-[#666666]">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-[#171717]" />
+                <div className="p-3.5 rounded-xl bg-neutral-50 border border-neutral-200 flex items-center gap-2.5 text-xs font-mono text-neutral-700 animate-pulse">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-neutral-900" />
                   <span>{statusMessage || "Processing repository..."}</span>
                 </div>
               )}
 
               {/* Error alert */}
               {errorMessage && (
-                <div className="p-3.5 rounded-lg border border-[#fae29c] bg-[#fff9e6] text-xs text-[#7d5700] flex items-center gap-2.5">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
+                <div className="p-4 rounded-xl border border-amber-200 bg-amber-50 text-xs text-amber-900 flex items-center gap-2.5">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
                   <span className="leading-relaxed">{errorMessage}</span>
                 </div>
               )}
@@ -238,42 +238,48 @@ export default function HomePage() {
 
             {/* How it works strip */}
             <section id="how-it-works" className="pt-8 text-left space-y-6">
-              <div className="text-center space-y-1">
-                <h2 className="text-xs font-mono uppercase tracking-wider text-[#8f8f8f]">
+              <div className="text-center space-y-1.5">
+                <h2 className="text-xs font-mono uppercase tracking-widest text-neutral-500 font-semibold">
                   How RepoPilot Works
                 </h2>
-                <p className="text-sm font-medium text-[#171717]">
+                <p className="text-base font-bold text-neutral-900">
                   Evidence-grounded code intelligence in three steps
                 </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="p-5 rounded-lg border border-[#ebebeb] bg-white space-y-2">
-                  <div className="flex items-center gap-2 text-xs font-mono font-semibold text-[#171717]">
-                    <Layers className="w-4 h-4 text-[#666666]" />
-                    <span>01 / Ingest</span>
+                <div className="p-6 rounded-2xl border border-neutral-200/90 bg-white shadow-2xs hover:shadow-md hover:border-neutral-300 transition-all space-y-3">
+                  <div className="w-9 h-9 rounded-xl bg-neutral-900 text-white flex items-center justify-center shadow-xs">
+                    <Layers className="w-4 h-4" />
                   </div>
-                  <p className="text-xs text-[#666666] leading-relaxed">
+                  <div className="text-xs font-mono font-bold text-neutral-900">
+                    01 / Ingest
+                  </div>
+                  <p className="text-xs text-neutral-600 leading-relaxed">
                     Bounded context extraction parses GitHub trees, detects frameworks, and extracts real code excerpts.
                   </p>
                 </div>
 
-                <div className="p-5 rounded-lg border border-[#ebebeb] bg-white space-y-2">
-                  <div className="flex items-center gap-2 text-xs font-mono font-semibold text-[#171717]">
-                    <MessageSquare className="w-4 h-4 text-[#666666]" />
-                    <span>02 / Ground</span>
+                <div className="p-6 rounded-2xl border border-neutral-200/90 bg-white shadow-2xs hover:shadow-md hover:border-neutral-300 transition-all space-y-3">
+                  <div className="w-9 h-9 rounded-xl bg-neutral-900 text-white flex items-center justify-center shadow-xs">
+                    <MessageSquare className="w-4 h-4" />
                   </div>
-                  <p className="text-xs text-[#666666] leading-relaxed">
+                  <div className="text-xs font-mono font-bold text-neutral-900">
+                    02 / Ground
+                  </div>
+                  <p className="text-xs text-neutral-600 leading-relaxed">
                     Ask questions grounded in inspected files with verified file citations and explicit confidence indicators.
                   </p>
                 </div>
 
-                <div className="p-5 rounded-lg border border-[#ebebeb] bg-white space-y-2">
-                  <div className="flex items-center gap-2 text-xs font-mono font-semibold text-[#171717]">
-                    <Sparkles className="w-4 h-4 text-[#666666]" />
-                    <span>03 / Blueprint</span>
+                <div className="p-6 rounded-2xl border border-neutral-200/90 bg-white shadow-2xs hover:shadow-md hover:border-neutral-300 transition-all space-y-3">
+                  <div className="w-9 h-9 rounded-xl bg-neutral-900 text-white flex items-center justify-center shadow-xs">
+                    <Sparkles className="w-4 h-4" />
                   </div>
-                  <p className="text-xs text-[#666666] leading-relaxed">
+                  <div className="text-xs font-mono font-bold text-neutral-900">
+                    03 / Blueprint
+                  </div>
+                  <p className="text-xs text-neutral-600 leading-relaxed">
                     Generate cohesive PRD, TRD, and TDD specifications alongside actionable 3-phase innovation blueprints.
                   </p>
                 </div>
@@ -284,18 +290,18 @@ export default function HomePage() {
           /* ============================================================ */
           /* Guest Workspace (Shared components, Chat-first)             */
           /* ============================================================ */
-          <div className="space-y-6 max-w-6xl mx-auto">
+          <div className="space-y-6 max-w-6xl mx-auto animate-fadeIn">
             {/* Slim Guest Workspace Header */}
-            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 p-4 bg-white border border-[#ebebeb] rounded-lg">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3 p-4 bg-white border border-neutral-200/90 rounded-2xl shadow-xs">
               <div className="flex items-center gap-3">
-                <span className="text-sm font-semibold text-[#171717]">
+                <span className="text-sm font-bold text-neutral-900">
                   {repoTitle || "Active Repository"}
                 </span>
                 <a
                   href={analyzedUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-[#ebebeb] bg-[#fafafa] text-[11px] font-mono text-[#666666] hover:text-[#171717] transition-colors"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-neutral-200 bg-neutral-50 text-[11px] font-mono text-neutral-600 hover:text-neutral-900 hover:border-neutral-400 transition-all"
                 >
                   <span>GitHub</span>
                   <ExternalLink className="w-3 h-3" />
@@ -304,59 +310,59 @@ export default function HomePage() {
 
               <button
                 onClick={handleReset}
-                className="text-xs font-mono text-[#666666] hover:text-[#171717] hover:underline self-start sm:self-auto"
+                className="text-xs font-mono text-neutral-500 hover:text-neutral-900 hover:underline self-start sm:self-auto"
               >
                 &larr; Analyze a different repository
               </button>
             </div>
 
             {/* Session Tabs (Chat is primary / default) */}
-            <div className="border-b border-[#ebebeb] flex flex-wrap gap-2 sm:gap-6">
+            <div className="border-b border-neutral-200 flex flex-wrap gap-2 sm:gap-4 pb-1">
               <button
                 onClick={() => setActiveTab("chat")}
-                className={`pb-3 text-xs sm:text-sm font-mono tracking-tight flex items-center gap-2 border-b-2 transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${
                   activeTab === "chat"
-                    ? "border-[#171717] text-[#171717] font-semibold"
-                    : "border-transparent text-[#666666] hover:text-[#171717]"
+                    ? "bg-neutral-900 text-white shadow-xs font-semibold"
+                    : "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100"
                 }`}
               >
-                <MessageSquare className="w-4 h-4" />
+                <MessageSquare className="w-3.5 h-3.5" />
                 <span>Chat</span>
               </button>
 
               <button
                 onClick={() => setActiveTab("overview")}
-                className={`pb-3 text-xs sm:text-sm font-mono tracking-tight flex items-center gap-2 border-b-2 transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${
                   activeTab === "overview"
-                    ? "border-[#171717] text-[#171717] font-semibold"
-                    : "border-transparent text-[#666666] hover:text-[#171717]"
+                    ? "bg-neutral-900 text-white shadow-xs font-semibold"
+                    : "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100"
                 }`}
               >
-                <Layers className="w-4 h-4" />
+                <Layers className="w-3.5 h-3.5" />
                 <span>Overview</span>
               </button>
 
               <button
                 onClick={() => setActiveTab("documents")}
-                className={`pb-3 text-xs sm:text-sm font-mono tracking-tight flex items-center gap-2 border-b-2 transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${
                   activeTab === "documents"
-                    ? "border-[#171717] text-[#171717] font-semibold"
-                    : "border-transparent text-[#666666] hover:text-[#171717]"
+                    ? "bg-neutral-900 text-white shadow-xs font-semibold"
+                    : "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100"
                 }`}
               >
-                <FileText className="w-4 h-4" />
+                <FileText className="w-3.5 h-3.5" />
                 <span>Documents</span>
               </button>
 
               <button
                 onClick={() => setActiveTab("innovation")}
-                className={`pb-3 text-xs sm:text-sm font-mono tracking-tight flex items-center gap-2 border-b-2 transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 transition-all ${
                   activeTab === "innovation"
-                    ? "border-[#171717] text-[#171717] font-semibold"
-                    : "border-transparent text-[#666666] hover:text-[#171717]"
+                    ? "bg-neutral-900 text-white shadow-xs font-semibold"
+                    : "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100"
                 }`}
               >
-                <Sparkles className="w-4 h-4" />
+                <Sparkles className="w-3.5 h-3.5" />
                 <span>Blueprint</span>
               </button>
             </div>

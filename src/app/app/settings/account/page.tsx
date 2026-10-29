@@ -16,6 +16,8 @@ import {
   KeyRound,
   Check,
   Mail,
+  ShieldCheck,
+  CheckCircle2,
 } from "lucide-react";
 
 function AccountSettingsContent() {
@@ -157,7 +159,7 @@ function AccountSettingsContent() {
 
   async function handleEmailChange(e: React.FormEvent) {
     e.preventDefault();
-    if (!newEmail.trim() || !newEmail.includes("@")) return;
+    if (!newEmail.trim()) return;
 
     setIsRequestingEmail(true);
     try {
@@ -167,27 +169,27 @@ function AccountSettingsContent() {
         body: JSON.stringify({ newEmail: newEmail.trim() }),
       });
       const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
         toast({
           title: "Email update failed",
-          message: data?.error?.message || "Failed to send verification email.",
+          message: data?.error?.message || "Could not process email change request.",
           type: "error",
         });
         return;
       }
-      const requestedEmail = newEmail.trim();
-      setPendingVerificationEmail(requestedEmail);
+
+      setPendingVerificationEmail(newEmail.trim());
       setEmailCooldown(0);
       toast({
         title: "Verification email sent",
-        message: data?.message || `A confirmation link was sent to ${requestedEmail}. Please verify to complete the change.`,
-        type: "success",
+        message: `We sent a confirmation link & 6-digit passcode to ${newEmail.trim()}. Please verify your address.`,
+        type: "info",
       });
-      setNewEmail("");
     } catch (err: unknown) {
       toast({
         title: "Email update failed",
-        message: err instanceof Error ? err.message : "Network error contacting server.",
+        message: err instanceof Error ? err.message : "Error contacting server.",
         type: "error",
       });
     } finally {
@@ -206,24 +208,26 @@ function AccountSettingsContent() {
         body: JSON.stringify({ newEmail: pendingVerificationEmail }),
       });
       const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
         toast({
           title: "Resend failed",
-          message: data?.error?.message || "Failed to resend verification email.",
+          message: data?.error?.message || "Could not resend verification email.",
           type: "error",
         });
         return;
       }
+
+      setEmailCooldown(60);
       toast({
         title: "Verification email resent",
-        message: `A new verification email was dispatched to ${pendingVerificationEmail}. Please check your inbox and Spam folder.`,
-        type: "success",
+        message: `New verification link and passcode sent to ${pendingVerificationEmail}. Please check your inbox and Spam folder.`,
+        type: "info",
       });
-      setEmailCooldown(30);
     } catch (err: unknown) {
       toast({
         title: "Resend failed",
-        message: err instanceof Error ? err.message : "Network error contacting server.",
+        message: err instanceof Error ? err.message : "Error contacting server.",
         type: "error",
       });
     } finally {
@@ -231,8 +235,7 @@ function AccountSettingsContent() {
     }
   }
 
-  async function handleVerifyPasscode(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleVerifyPasscode() {
     if (!passcode.trim()) return;
 
     setIsVerifyingCode(true);
@@ -243,21 +246,25 @@ function AccountSettingsContent() {
         body: JSON.stringify({ code: passcode.trim() }),
       });
       const data = await res.json().catch(() => ({}));
+
       if (!res.ok) {
         toast({
-          title: "Verification failed",
-          message: data?.error?.message || "Invalid or expired passcode.",
+          title: "Passcode verification failed",
+          message: data?.error?.message || "Invalid or expired 6-digit passcode.",
           type: "error",
         });
         return;
       }
 
-      setVerifiedEmailOverride(data?.newEmail || pendingVerificationEmail);
+      const verified = data.newEmail || pendingVerificationEmail;
+      setVerifiedEmailOverride(verified);
       setPendingVerificationEmail(null);
       setPasscode("");
+      setNewEmail("");
+
       toast({
-        title: "Email verified successfully",
-        message: data?.message || "Your primary email address has been updated.",
+        title: "Email verified & updated",
+        message: `Your primary email address is now ${verified}.`,
         type: "success",
       });
     } catch (err: unknown) {
@@ -350,29 +357,30 @@ function AccountSettingsContent() {
   return (
     <div className="space-y-6">
       {/* Email Section */}
-      <div className="bg-white rounded-lg border border-[#ebebeb] p-6 sm:p-8 space-y-4">
+      <div className="bg-white rounded-2xl border border-neutral-200/90 shadow-2xs p-6 sm:p-8 space-y-5 transition-all">
         <div>
-          <h2 className="text-base font-semibold text-[#171717]">Account Email</h2>
-          <p className="text-xs text-[#666666] mt-0.5">
+          <h2 className="text-base font-bold text-neutral-900">Account Email</h2>
+          <p className="text-xs text-neutral-500 mt-0.5">
             Your primary email address is used for authentication and security alerts.
           </p>
         </div>
 
         <form onSubmit={handleEmailChange} className="space-y-4 max-w-md">
           <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-[#171717]">
+            <label className="block text-xs font-medium text-neutral-900">
               Current Email
             </label>
             <div className="flex items-center gap-2">
-              <Input value={userEmail} disabled className="bg-[#fafafa]" />
-              <span className="text-[10px] font-mono px-2 py-1 rounded bg-[#eaf5ed] text-[#16a34a] border border-[#d2edd7] shrink-0 font-medium">
-                Verified
+              <Input value={userEmail} disabled className="bg-neutral-50/70 border-neutral-200 text-neutral-800" />
+              <span className="inline-flex items-center gap-1 text-[11px] font-mono px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0 font-semibold shadow-2xs">
+                <Check className="w-3 h-3" />
+                <span>Verified</span>
               </span>
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="newEmail" className="block text-xs font-medium text-[#171717]">
+            <label htmlFor="newEmail" className="block text-xs font-medium text-neutral-900">
               New Email Address
             </label>
             <Input
@@ -382,6 +390,7 @@ function AccountSettingsContent() {
               onChange={(e) => setNewEmail(e.target.value)}
               placeholder="name@company.com"
               disabled={isRequestingEmail}
+              className="rounded-xl border-neutral-300 focus:border-neutral-900"
             />
           </div>
 
@@ -390,57 +399,57 @@ function AccountSettingsContent() {
             variant="secondary"
             disabled={!newEmail.trim() || isRequestingEmail}
             isLoading={isRequestingEmail}
+            className="rounded-xl border-neutral-300 hover:border-neutral-400 hover:bg-neutral-50 text-neutral-900 font-semibold"
           >
             Update Email Address
           </Button>
 
           {pendingVerificationEmail && (
-            <div className="p-4 rounded-lg border border-[#bfdbfe] bg-[#eff6ff] space-y-3 animate-fadeIn">
-              <div className="flex items-start gap-2.5">
-                <Mail className="w-4 h-4 text-[#2563eb] shrink-0 mt-0.5" />
+            <div className="p-5 rounded-2xl border border-neutral-200 bg-neutral-50/70 space-y-4 shadow-xs animate-fadeIn">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-xl bg-neutral-900 text-white flex items-center justify-center shrink-0">
+                  <Mail className="w-4 h-4" />
+                </div>
                 <div className="space-y-1">
-                  <p className="text-xs font-semibold text-[#1e40af]">
+                  <p className="text-xs font-bold text-neutral-900">
                     Verification email dispatched to {pendingVerificationEmail}
                   </p>
-                  <p className="text-[11px] text-[#3b82f6] leading-relaxed">
+                  <p className="text-[11px] text-neutral-600 leading-relaxed">
                     Click the link in the email, or enter the <strong>6-digit verification passcode</strong> from the email below to complete verification.
                   </p>
-                  <p className="text-[10px] text-[#64748b]">
+                  <p className="text-[10px] text-neutral-400">
                     💡 Check your <strong>Spam / Junk</strong> folder. If you sent the verification to your own sender Gmail, also check <strong>All Mail</strong> or <strong>Sent</strong>.
                   </p>
                 </div>
               </div>
 
-              {/* 6-Digit Passcode Input Box */}
-              <div className="bg-white border border-[#cbd5e1] rounded-md p-3 space-y-2">
-                <label htmlFor="email-passcode" className="block text-[11px] font-mono uppercase tracking-wider text-[#475569] font-medium">
-                  Enter 6-Digit Passcode:
+              {/* 6-Digit Passcode Input Box (styled after code.html passcode box) */}
+              <div className="bg-white border border-neutral-200 rounded-xl p-4 text-center space-y-2.5 shadow-2xs">
+                <label htmlFor="email-passcode" className="block text-[11px] font-mono uppercase tracking-widest text-neutral-500 font-semibold">
+                  Verification Passcode:
                 </label>
-                <div className="flex items-center gap-2">
-                  <Input
+                <div className="flex items-center justify-center gap-2">
+                  <input
                     id="email-passcode"
                     type="text"
                     value={passcode}
                     onChange={(e) => setPasscode(e.target.value)}
                     placeholder="e.g. 849-216"
-                    className="font-mono text-sm max-w-[160px] tracking-wider text-center"
+                    className="font-mono text-base font-bold tracking-widest text-neutral-900 bg-neutral-50/50 px-4 py-2 border border-neutral-300 rounded-xl shadow-2xs text-center max-w-[180px] focus:outline-none focus:ring-2 focus:ring-neutral-900/10 focus:border-neutral-900"
                     disabled={isVerifyingCode}
                   />
-                  <Button
+                  <button
                     type="button"
-                    variant="primary"
-                    size="sm"
                     onClick={handleVerifyPasscode}
                     disabled={!passcode.trim() || isVerifyingCode}
-                    isLoading={isVerifyingCode}
-                    className="text-xs font-mono"
+                    className="px-4 py-2 bg-neutral-900 hover:bg-black text-white text-xs font-semibold rounded-xl shadow-xs hover:shadow-md transition-all disabled:opacity-50"
                   >
-                    Verify Code
-                  </Button>
+                    {isVerifyingCode ? "Verifying..." : "Verify Code"}
+                  </button>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 pt-1 border-t border-[#dbeafe]">
+              <div className="flex items-center gap-2 pt-2 border-t border-neutral-200">
                 <Button
                   type="button"
                   variant="outline"
@@ -449,7 +458,7 @@ function AccountSettingsContent() {
                   onClick={handleResendVerificationEmail}
                   disabled={isResendingEmail || emailCooldown > 0}
                   isLoading={isResendingEmail}
-                  className="bg-white text-xs font-mono"
+                  className="bg-white text-xs font-mono rounded-xl border-neutral-300 hover:bg-neutral-50"
                 >
                   {emailCooldown > 0
                     ? `Resend available in ${emailCooldown}s`
@@ -461,7 +470,7 @@ function AccountSettingsContent() {
                     setPendingVerificationEmail(null);
                     setPasscode("");
                   }}
-                  className="text-xs font-mono text-[#64748b] hover:text-[#171717] px-2 py-1"
+                  className="text-xs font-mono text-neutral-500 hover:text-neutral-900 px-2 py-1"
                 >
                   Cancel
                 </button>
@@ -472,17 +481,17 @@ function AccountSettingsContent() {
       </div>
 
       {/* Password Change Section */}
-      <div className="bg-white rounded-lg border border-[#ebebeb] p-6 sm:p-8 space-y-4">
+      <div className="bg-white rounded-2xl border border-neutral-200/90 shadow-2xs p-6 sm:p-8 space-y-5 transition-all">
         <div>
-          <h2 className="text-base font-semibold text-[#171717]">Change Password</h2>
-          <p className="text-xs text-[#666666] mt-0.5">
+          <h2 className="text-base font-bold text-neutral-900">Change Password</h2>
+          <p className="text-xs text-neutral-500 mt-0.5">
             Update your account password. Must be at least 10 characters.
           </p>
         </div>
 
         <form onSubmit={handlePasswordChange} className="space-y-4 max-w-md">
           <div className="space-y-1.5">
-            <label htmlFor="currentPassword" className="block text-xs font-medium text-[#171717]">
+            <label htmlFor="currentPassword" className="block text-xs font-medium text-neutral-900">
               Current Password
             </label>
             <Input
@@ -493,11 +502,12 @@ function AccountSettingsContent() {
               placeholder="••••••••••••"
               disabled={isChangingPassword}
               required
+              className="rounded-xl border-neutral-300 focus:border-neutral-900"
             />
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="newPassword" className="block text-xs font-medium text-[#171717]">
+            <label htmlFor="newPassword" className="block text-xs font-medium text-neutral-900">
               New Password
             </label>
             <Input
@@ -508,21 +518,22 @@ function AccountSettingsContent() {
               placeholder="••••••••••••"
               disabled={isChangingPassword}
               required
+              className="rounded-xl border-neutral-300 focus:border-neutral-900"
             />
             <div className="text-[11px] font-mono space-y-1 pt-1">
               <div
                 className={`flex items-center gap-1.5 ${
-                  newPassword.length >= 10 ? "text-[#16a34a]" : "text-[#8f8f8f]"
+                  newPassword.length >= 10 ? "text-emerald-600 font-medium" : "text-neutral-400"
                 }`}
               >
-                <Check className="w-3 h-3" />
+                <CheckCircle2 className="w-3.5 h-3.5" />
                 <span>At least 10 characters long ({newPassword.length}/10)</span>
               </div>
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor="confirmPassword" className="block text-xs font-medium text-[#171717]">
+            <label htmlFor="confirmPassword" className="block text-xs font-medium text-neutral-900">
               Confirm New Password
             </label>
             <Input
@@ -533,31 +544,32 @@ function AccountSettingsContent() {
               placeholder="••••••••••••"
               disabled={isChangingPassword}
               required
+              className="rounded-xl border-neutral-300 focus:border-neutral-900"
             />
           </div>
 
-          <Button
+          <button
             type="submit"
-            isLoading={isChangingPassword}
             disabled={
               !currentPassword ||
               newPassword.length < 10 ||
               newPassword !== confirmPassword ||
               isChangingPassword
             }
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-neutral-900 hover:bg-black text-white text-xs font-semibold rounded-xl shadow-xs hover:shadow-md transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
           >
-            <KeyRound className="w-3.5 h-3.5 mr-1.5" />
-            Update Password
-          </Button>
+            <KeyRound className="w-3.5 h-3.5" />
+            <span>{isChangingPassword ? "Updating..." : "Update Password"}</span>
+          </button>
         </form>
       </div>
 
       {/* Active Devices & Sessions */}
-      <div className="bg-white rounded-lg border border-[#ebebeb] p-6 sm:p-8 space-y-4">
+      <div className="bg-white rounded-2xl border border-neutral-200/90 shadow-2xs p-6 sm:p-8 space-y-5 transition-all">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-base font-semibold text-[#171717]">Active Sessions & Devices</h2>
-            <p className="text-xs text-[#666666] mt-0.5">
+            <h2 className="text-base font-bold text-neutral-900">Active Sessions &amp; Devices</h2>
+            <p className="text-xs text-neutral-500 mt-0.5">
               Current browser and active authorized sessions.
             </p>
           </div>
@@ -566,16 +578,18 @@ function AccountSettingsContent() {
               variant="outline"
               onClick={handleSignOutCurrent}
               isLoading={isSigningOutCurrent}
+              className="rounded-xl border-neutral-300 hover:border-red-300 hover:bg-red-50 text-neutral-800"
             >
-              <LogOut className="w-3.5 h-3.5 mr-1.5 text-[#dc2626]" />
+              <LogOut className="w-3.5 h-3.5 mr-1.5 text-red-600" />
               Sign Out of Current Session
             </Button>
             <Button
               variant="secondary"
               onClick={handleSignOutOthers}
               isLoading={isSigningOutOthers}
+              className="rounded-xl border-neutral-300 hover:bg-neutral-50 text-neutral-800"
             >
-              <ShieldAlert className="w-3.5 h-3.5 mr-1.5" />
+              <ShieldAlert className="w-3.5 h-3.5 mr-1.5 text-neutral-600" />
               Sign Out Other Devices
             </Button>
           </div>
@@ -583,27 +597,29 @@ function AccountSettingsContent() {
 
         <div className="space-y-3 pt-2">
           {/* Current Device */}
-          <div className="p-3.5 rounded border border-[#ebebeb] bg-[#fafafa] flex items-center justify-between">
+          <div className="p-4 rounded-xl border border-neutral-200 bg-neutral-50/60 flex items-center justify-between transition-all">
             <div className="flex items-center gap-3">
-              <Laptop className="w-4 h-4 text-[#171717]" />
+              <div className="w-8 h-8 rounded-lg bg-neutral-900 text-white flex items-center justify-center">
+                <Laptop className="w-4 h-4" />
+              </div>
               <div>
-                <p className="text-xs font-medium text-[#171717]">
+                <p className="text-xs font-semibold text-neutral-900">
                   Windows PC · Chrome Browser
                 </p>
-                <p className="text-[10px] font-mono text-[#8f8f8f]">
+                <p className="text-[10px] font-mono text-neutral-500">
                   Active right now · Current session
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white border border-[#ebebeb] text-[#171717] font-medium">
+              <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-white border border-neutral-200 text-neutral-900 font-semibold shadow-2xs">
                 This Device
               </span>
               <button
                 type="button"
                 onClick={handleSignOutCurrent}
                 aria-label="Sign out of this device"
-                className="text-xs font-mono text-[#dc2626] hover:underline px-1.5 py-0.5"
+                className="text-xs font-mono text-red-600 hover:underline px-2 py-0.5"
               >
                 Sign out
               </button>
@@ -611,19 +627,21 @@ function AccountSettingsContent() {
           </div>
 
           {/* Secondary Device */}
-          <div className="p-3.5 rounded border border-[#ebebeb] bg-white flex items-center justify-between">
+          <div className="p-4 rounded-xl border border-neutral-200 bg-white flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Smartphone className="w-4 h-4 text-[#666666]" />
+              <div className="w-8 h-8 rounded-lg bg-neutral-100 text-neutral-600 flex items-center justify-center border border-neutral-200">
+                <Smartphone className="w-4 h-4" />
+              </div>
               <div>
-                <p className="text-xs font-medium text-[#171717]">
+                <p className="text-xs font-semibold text-neutral-900">
                   Mobile Browser · iOS Safari
                 </p>
-                <p className="text-[10px] font-mono text-[#8f8f8f]">
+                <p className="text-[10px] font-mono text-neutral-500">
                   Last active 3 hours ago
                 </p>
               </div>
             </div>
-            <span className="text-[10px] font-mono text-[#8f8f8f]">
+            <span className="text-[10px] font-mono text-neutral-400">
               Online
             </span>
           </div>
@@ -631,14 +649,14 @@ function AccountSettingsContent() {
       </div>
 
       {/* Danger Zone: Delete Account */}
-      <div className="bg-white rounded-lg border border-[#f87171]/40 p-6 sm:p-8 space-y-4">
+      <div className="bg-white rounded-2xl border border-red-200 p-6 sm:p-8 space-y-4 shadow-2xs">
         <div className="flex items-start gap-3">
-          <div className="p-2 rounded bg-[#fef2f2] text-[#dc2626]">
+          <div className="p-2.5 rounded-xl bg-red-50 text-red-600 border border-red-200 shrink-0">
             <AlertTriangle className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-base font-semibold text-[#dc2626]">Danger Zone</h2>
-            <p className="text-xs text-[#666666] mt-0.5">
+            <h2 className="text-base font-bold text-red-700">Danger Zone</h2>
+            <p className="text-xs text-neutral-500 mt-0.5">
               Permanently delete your account and all associated repository sessions, messages, documents, and innovation blueprints.
             </p>
           </div>
@@ -648,6 +666,7 @@ function AccountSettingsContent() {
           <Button
             variant="danger"
             onClick={() => setIsDeleteModalOpen(true)}
+            className="rounded-xl shadow-xs"
           >
             Delete Account
           </Button>
@@ -662,12 +681,12 @@ function AccountSettingsContent() {
         maxWidth="md"
       >
         <div className="space-y-4">
-          <div className="p-3.5 rounded bg-[#fef2f2] border border-[#fecaca] text-xs text-[#991b1b] space-y-1">
-            <p className="font-semibold flex items-center gap-1.5">
-              <ShieldAlert className="w-4 h-4 shrink-0" />
+          <div className="p-3.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-900 space-y-1">
+            <p className="font-bold flex items-center gap-1.5">
+              <ShieldAlert className="w-4 h-4 shrink-0 text-red-600" />
               <span>This action cannot be undone.</span>
             </p>
-            <p className="leading-relaxed">
+            <p className="leading-relaxed text-red-800">
               Deleting your account will permanently remove all your saved repository sessions, chat history, generated specifications (PRD, TRD, TDD), and blueprints via database cascade.
             </p>
           </div>
@@ -675,7 +694,7 @@ function AccountSettingsContent() {
           <div className="space-y-2">
             <label
               htmlFor="confirm-email"
-              className="block text-xs font-medium text-[#171717]"
+              className="block text-xs font-medium text-neutral-900"
             >
               To confirm, please type your email address:{" "}
               <span className="font-mono font-semibold">{userEmail}</span>
@@ -686,14 +705,16 @@ function AccountSettingsContent() {
               onChange={(e) => setTypedConfirmEmail(e.target.value)}
               placeholder={userEmail}
               disabled={isDeletingAccount}
+              className="rounded-xl"
             />
           </div>
 
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#ebebeb]">
+          <div className="flex items-center justify-end gap-2 pt-2 border-t border-neutral-200">
             <Button
               variant="secondary"
               onClick={() => setIsDeleteModalOpen(false)}
               disabled={isDeletingAccount}
+              className="rounded-xl"
             >
               Cancel
             </Button>
@@ -702,6 +723,7 @@ function AccountSettingsContent() {
               onClick={handleDeleteAccount}
               disabled={!isDeleteConfirmed || isDeletingAccount}
               isLoading={isDeletingAccount}
+              className="rounded-xl"
             >
               Permanently Delete Account
             </Button>
@@ -714,7 +736,7 @@ function AccountSettingsContent() {
 
 export default function AccountSettingsPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-xs font-mono text-[#8f8f8f]">Loading account settings...</div>}>
+    <Suspense fallback={<div className="p-8 text-xs font-mono text-neutral-400">Loading account settings...</div>}>
       <AccountSettingsContent />
     </Suspense>
   );

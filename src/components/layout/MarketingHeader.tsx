@@ -3,42 +3,45 @@ import Link from "next/link";
 
 export function MarketingHeader() {
   return (
-    <header className="sticky top-0 z-50 h-14 border-b border-[#ebebeb] bg-[#fafafa]/90 backdrop-blur-sm px-4 sm:px-6 flex items-center justify-between max-w-[1280px] w-full mx-auto">
+    <header className="sticky top-0 z-50 h-14 border-b border-neutral-200/90 bg-white/90 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between max-w-[1280px] w-full mx-auto select-none">
       <div className="flex items-center space-x-3">
         <Link
           href="/"
-          className="text-[13px] font-mono tracking-tight text-[#000000] font-semibold select-none flex items-center gap-1.5"
+          className="text-sm font-bold tracking-tight text-neutral-900 flex items-center gap-2 group transition-opacity"
           aria-label="RepoPilot Product Home"
         >
-          <span>▲</span> RepoPilot
+          <div className="w-6 h-6 rounded-md bg-neutral-950 text-white flex items-center justify-center text-[10px] font-black shadow-xs">
+            ▲
+          </div>
+          <span>RepoPilot</span>
         </Link>
-        <span className="hidden sm:inline-block text-[11px] font-mono text-[#8f8f8f] uppercase tracking-wider pl-2 border-l border-[#ebebeb]">
+        <span className="hidden sm:inline-block text-[10px] font-mono font-medium text-neutral-500 uppercase tracking-widest pl-2.5 border-l border-neutral-200">
           Product
         </span>
       </div>
 
-      <div className="flex items-center space-x-3 sm:space-x-5 text-[13px]">
+      <div className="flex items-center space-x-3 sm:space-x-5 text-xs">
         <Link
           href="#how-it-works"
-          className="text-[#666666] hover:text-[#171717] transition-colors font-mono text-xs hidden sm:inline-block"
+          className="text-neutral-600 hover:text-neutral-950 transition-colors font-medium hidden sm:inline-block"
         >
           How it works
         </Link>
         <Link
           href="/app"
-          className="text-[#171717] hover:text-[#000000] font-mono text-xs font-semibold px-2.5 py-1 rounded bg-[#f0f0f0] hover:bg-[#ebebeb] border border-[#d6d6d6] transition-colors"
+          className="text-neutral-800 hover:text-neutral-950 font-medium px-3 py-1.5 rounded-lg bg-neutral-100 hover:bg-neutral-200/70 border border-neutral-200 transition-all shadow-2xs"
         >
           Open workspace
         </Link>
         <Link
           href="/login"
-          className="text-[#666666] hover:text-[#171717] transition-colors font-mono text-xs"
+          className="text-neutral-600 hover:text-neutral-950 transition-colors font-medium px-2 py-1"
         >
           Log in
         </Link>
         <Link
           href="/signup"
-          className="px-2.5 py-1 rounded text-xs font-mono bg-[#171717] text-white hover:bg-[#333333] transition-colors"
+          className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-neutral-900 text-white hover:bg-black transition-all shadow-xs hover:-translate-y-0.5 active:translate-y-0"
         >
           Sign up
         </Link>
@@ -46,4 +49,3 @@ export function MarketingHeader() {
     </header>
   );
 }
-

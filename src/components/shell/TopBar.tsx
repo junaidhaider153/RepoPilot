@@ -58,7 +58,7 @@ export function TopBar({
   return (
     <header
       className={cn(
-        "h-12 bg-white/85 backdrop-blur-md border-b border-[#ebebeb]/80 px-3 sm:px-4 flex items-center justify-between shrink-0 z-10 select-none shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all",
+        "h-13 bg-white/95 backdrop-blur-md border-b border-neutral-200/90 px-3 sm:px-5 flex items-center justify-between shrink-0 z-10 select-none shadow-xs transition-all",
         className
       )}
     >
@@ -67,14 +67,14 @@ export function TopBar({
         <button
           onClick={onOpenMobileMenu}
           aria-label="Open sidebar menu"
-          className="md:hidden p-1.5 text-[#666666] hover:text-[#171717] hover:bg-[#fafafa] rounded transition-colors"
+          className="md:hidden p-1.5 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 rounded-lg transition-colors"
         >
           <Menu className="w-4 h-4" />
         </button>
 
         {session && (
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-xs sm:text-sm font-semibold text-[#171717] truncate max-w-[120px] sm:max-w-[200px]">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="text-xs sm:text-sm font-semibold text-neutral-900 truncate max-w-[120px] sm:max-w-[200px]">
               {session.title}
             </span>
 
@@ -84,7 +84,7 @@ export function TopBar({
               target="_blank"
               rel="noopener noreferrer"
               title={`View ${session.owner}/${session.repo} on GitHub`}
-              className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded border border-[#ebebeb] bg-[#fafafa] text-[11px] font-mono text-[#666666] hover:text-[#171717] hover:border-[#8f8f8f] transition-colors"
+              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border border-neutral-200 bg-neutral-50 text-[11px] font-mono text-neutral-600 hover:text-neutral-900 hover:border-neutral-400 hover:bg-white transition-all shadow-2xs"
             >
               <span>
                 {session.owner}/{session.repo}
@@ -99,7 +99,7 @@ export function TopBar({
       {session && (
         <nav
           aria-label="Session Workspace Tabs"
-          className="flex items-center gap-1 sm:gap-4 overflow-x-auto scrollbar-none h-full"
+          className="flex items-center gap-1 sm:gap-2 overflow-x-auto scrollbar-none h-full py-1.5"
         >
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
@@ -116,10 +116,10 @@ export function TopBar({
                 aria-selected={isActive}
                 onClick={() => onTabChange(tab.id)}
                 className={cn(
-                  "h-full px-2 sm:px-3 text-xs sm:text-sm font-mono tracking-tight flex items-center gap-1.5 border-b-2 transition-all duration-200 -mb-px focus:outline-none focus-visible:ring-1 focus-visible:ring-blue-600",
+                  "px-3 py-1.5 text-xs font-medium rounded-lg flex items-center gap-1.5 transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900",
                   isActive
-                    ? "border-blue-600 text-blue-600 font-semibold"
-                    : "border-transparent text-[#666666] hover:text-[#171717] hover:border-slate-300"
+                    ? "bg-neutral-900 text-white shadow-xs font-semibold"
+                    : "text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100"
                 )}
               >
                 {tab.icon}
@@ -141,7 +141,7 @@ export function TopBar({
                 onClick={onRefresh}
                 disabled={isRefreshing}
                 title="Refresh repository files and architectural snapshot"
-                className="p-1.5 sm:px-2.5 sm:py-1 rounded border border-[#ebebeb] text-xs font-mono text-[#4d4d4d] hover:text-[#171717] hover:bg-[#fafafa] flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg border border-neutral-200 text-xs font-mono text-neutral-700 hover:text-neutral-950 hover:bg-neutral-100 flex items-center gap-1.5 transition-colors disabled:opacity-50"
               >
                 <RefreshCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin")} />
                 <span className="hidden sm:inline">{isRefreshing ? "Refreshing..." : "Refresh"}</span>
@@ -151,7 +151,7 @@ export function TopBar({
             <button
               onClick={onExportAll}
               title="Export all documents as Markdown"
-              className="p-1.5 sm:px-2.5 sm:py-1 rounded border border-[#ebebeb] text-xs font-mono text-[#4d4d4d] hover:text-[#171717] hover:bg-[#fafafa] flex items-center gap-1.5 transition-colors"
+              className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg border border-neutral-200 text-xs font-mono text-neutral-700 hover:text-neutral-950 hover:bg-neutral-100 flex items-center gap-1.5 transition-colors"
             >
               <Download className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Export</span>
@@ -160,7 +160,7 @@ export function TopBar({
             <button
               disabled
               title="Share session (Phase 3)"
-              className="p-1.5 sm:px-2.5 sm:py-1 rounded border border-[#ebebeb] text-xs font-mono text-[#a8a8a8] bg-[#fafafa] cursor-not-allowed hidden sm:flex items-center gap-1.5 opacity-60"
+              className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg border border-neutral-200 text-xs font-mono text-neutral-400 bg-neutral-50 cursor-not-allowed hidden sm:flex items-center gap-1.5 opacity-60"
             >
               <Share2 className="w-3.5 h-3.5" />
               <span className="hidden md:inline">Share</span>
@@ -169,7 +169,7 @@ export function TopBar({
         )}
 
         {onSignOut && (
-          <div className="flex items-center gap-1.5 pl-2 ml-1 border-l border-[#ebebeb]">
+          <div className="flex items-center gap-1.5 pl-2 ml-1 border-l border-neutral-200">
             {user && (
               <Dropdown
                 align="right"
@@ -177,9 +177,9 @@ export function TopBar({
                 trigger={
                   <button
                     aria-label={`User profile menu for ${user.displayName || user.email}`}
-                    className="flex items-center gap-1.5 p-1 rounded hover:bg-[#fafafa] transition-colors focus:outline-none focus:ring-1 focus:ring-[#171717]"
+                    className="flex items-center gap-1.5 p-1 rounded-lg hover:bg-neutral-100 transition-colors focus:outline-none focus:ring-1 focus:ring-neutral-900"
                   >
-                    <div className="w-6 h-6 rounded-full bg-[#171717] text-white text-[10px] font-mono font-medium flex items-center justify-center shrink-0">
+                    <div className="w-6 h-6 rounded-full bg-neutral-950 ring-1 ring-neutral-300 text-white text-[10px] font-mono font-bold flex items-center justify-center shrink-0">
                       {(user.displayName || user.email || "U").slice(0, 1).toUpperCase()}
                     </div>
                   </button>
@@ -188,7 +188,7 @@ export function TopBar({
                   {
                     id: "user-name",
                     label: user.displayName || user.email,
-                    icon: <User className="w-3.5 h-3.5 text-[#8f8f8f]" />,
+                    icon: <User className="w-3.5 h-3.5 text-neutral-400" />,
                     onClick: () => {
                       if (typeof window !== "undefined") {
                         window.location.href = "/app/settings";
@@ -209,7 +209,7 @@ export function TopBar({
                   {
                     id: "signout",
                     label: "Sign out",
-                    icon: <LogOut className="w-3.5 h-3.5 text-[#dc2626]" />,
+                    icon: <LogOut className="w-3.5 h-3.5 text-red-600" />,
                     danger: true,
                     onClick: () => onSignOut(),
                   },
@@ -221,7 +221,7 @@ export function TopBar({
               onClick={onSignOut}
               aria-label="Sign out"
               title="Sign out of RepoPilot"
-              className="p-1.5 sm:px-2.5 sm:py-1 rounded border border-[#ebebeb] text-xs font-mono text-[#4d4d4d] hover:text-[#dc2626] hover:border-[#fecaca] hover:bg-[#fef2f2] flex items-center gap-1.5 transition-colors focus:outline-none focus:ring-1 focus:ring-[#dc2626]"
+              className="p-1.5 sm:px-2.5 sm:py-1 rounded-lg border border-neutral-200 text-xs font-mono text-neutral-700 hover:text-red-700 hover:border-red-200 hover:bg-red-50 flex items-center gap-1.5 transition-colors focus:outline-none focus:ring-1 focus:ring-red-500"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span className="hidden md:inline">Sign out</span>
@@ -232,4 +232,3 @@ export function TopBar({
     </header>
   );
 }
-
