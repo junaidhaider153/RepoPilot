@@ -89,6 +89,11 @@ export async function POST(req: NextRequest) {
       if (result.markdown.prompt) {
         await upsertSessionDocument(sessionId, { kind: "prompt", contentMd: result.markdown.prompt });
       }
+      // Save complete structured spec bundle
+      await upsertSessionDocument(sessionId, {
+        kind: "all",
+        contentMd: JSON.stringify(result),
+      });
     }
 
     return NextResponse.json(result, { status: 200 });

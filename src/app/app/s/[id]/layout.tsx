@@ -9,6 +9,7 @@ import { SessionTab } from "@/components/shell/types";
 import { Button } from "@/components/ui/Button";
 import { AlertCircle, ArrowLeft, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/Toast";
+import { useMobileNav } from "@/components/shell/AppShellContainer";
 
 export default function SessionLayout({
   children,
@@ -22,6 +23,7 @@ export default function SessionLayout({
   const pathname = usePathname();
   const router = useRouter();
   const { toast } = useToast();
+  const { openMobileMenu } = useMobileNav();
   const { getSession, sessions, updateSession, addOrUpdateSession } = useSessionContext();
 
   const [session, setSession] = useState<ExtendedSessionItem | undefined>(() => getSession(sessionId));
@@ -127,29 +129,122 @@ export default function SessionLayout({
     }
   }
 
-  function handleExportAll() {
+  async function handleExportAll() {
     if (!session) return;
-    const exportText = `# RepoPilot Full Session Export: ${session.title}
-Repository: ${session.repoUrl}
-Session ID: ${session.id}
-Exported At: ${new Date().toISOString()}
+
+    try {
+      // Fetch session chat, documents, and blueprint in parallel
+      const [msgRes, docRes, bpRes] = await Promise.all([
+        fetch(`/api/sessions/${session.id}/messages`).then((r) => (r.ok ? r.json() : { messages: [] })),
+        fetch(`/api/sessions/${session.id}/documents`).then((r) => (r.ok ? r.json() : { documents: [] })),
+        fetch(`/api/sessions/${session.id}/blueprint`).then((r) => (r.ok ? r.json() : {})) as Promise<any>,
+      ]);
+
+      const messages: any[] = msgRes?.messages || [];
+      const documents: any[] = docRes?.documents || [];
+      const blueprint: any = bpRes?.blueprint || {};
+
+      let exportText = `# RepoPilot Full Session Export: ${session.title}
+- **Repository:** ${session.repoUrl}
+- **Owner / Repo:** ${session.owner}/${session.repo}
+- **Session ID:** \`${session.id}\`
+- **Exported At:** ${new Date().toISOString()}
 
 ---
-(Evidence-grounded analysis exported from RepoPilot)
-`;
-    const blob = new Blob([exportText], { type: "text/markdown" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `repopilot-${session.owner}-${session.repo}-full.md`;
-    a.click();
-    URL.revokeObjectURL(url);
 
-    toast({
-      title: "Export Ready",
-      message: `Downloaded ${session.title} package as Markdown.`,
-      type: "success",
-    });
+## 1. Architectural Summary
+`;
+
+      if (session.analysisResult) {
+        const ar = session.analysisResult;
+        exportText += `\n### Purpose\n${ar.analysis?.purposeSummary || "N/A"}\n`;
+        exportText += `\n### Architecture Overview\n${ar.analysis?.architectureOverview || "N/A"}\n`;
+        if (ar.detectedTechnologies?.length) {
+          exportText += `\n### Detected Technologies\n${ar.detectedTechnologies.map((t: string) => `- ${t}`).join("\n")}\n`;
+        }
+      } else {
+        exportText += `\nNo cached architectural snapshot found.\n`;
+      }
+
+      exportText += `\n---\n\n## 2. Conversation & Grounded Q&A (${messages.length} messages)\n\n`;
+      if (messages.length === 0) {
+        exportText += `_No messages recorded in this session._\n\n`;
+      } else {
+        for (const m of messages) {
+          const roleLabel = m.role === "user" ? "**User**" : "**Assistant (RepoPilot)**";
+          exportText += `### ${roleLabel}\n\n${m.content}\n\n`;
+          if (m.evidence_json && Array.isArray(m.evidence_json) && m.evidence_json.length > 0) {
+            exportText += `**Evidence Citations:**\n`;
+            for (const ev of m.evidence_json) {
+              exportText += `- \`${ev.path}\`: ${ev.reason || ""}\n`;
+            }
+            exportText += `\n`;
+          }
+        }
+      }
+
+      exportText += `\n---\n\n## 3. Project Specifications & Documents\n\n`;
+      if (documents.length === 0) {
+        exportText += `_No project documents generated for this session._\n\n`;
+      } else {
+        const prd = documents.find((d: any) => d.kind === "prd");
+        const trd = documents.find((d: any) => d.kind === "trd");
+        const tdd = documents.find((d: any) => d.kind === "tdd");
+        const prompt = documents.find((d: any) => d.kind === "prompt");
+
+        if (prd) exportText += `### Product Requirements Document (PRD)\n\n${prd.content_md}\n\n`;
+        if (trd) exportText += `### Technical Requirements Document (TRD)\n\n${trd.content_md}\n\n`;
+        if (tdd) exportText += `### Test-Driven Development Plan (TDD)\n\n${tdd.content_md}\n\n`;
+        if (prompt) exportText += `### Coding Agent Implementation Prompt\n\n\`\`\`markdown\n${prompt.content_md}\n\`\`\`\n\n`;
+      }
+
+      exportText += `\n---\n\n## 4. Innovation Blueprint\n\n`;
+      if (blueprint.plan_json) {
+        exportText += `### Implementation Plan: ${blueprint.plan_json.title || "Selected Opportunity"}\n\n`;
+        if (blueprint.plan_json.architectureNotes) {
+          exportText += `**Architecture Notes:**\n${blueprint.plan_json.architectureNotes}\n\n`;
+        }
+        if (blueprint.plan_json.phases && Array.isArray(blueprint.plan_json.phases)) {
+          exportText += `**Phases:**\n`;
+          blueprint.plan_json.phases.forEach((p: any, idx: number) => {
+            exportText += `#### Phase ${idx + 1}: ${p.name || p.phaseTitle || "Execution"}\n`;
+            if (p.tasks && Array.isArray(p.tasks)) {
+              p.tasks.forEach((task: string) => {
+                exportText += `- [ ] ${task}\n`;
+              });
+            }
+            exportText += `\n`;
+          });
+        }
+      } else if (blueprint.opportunities_json && blueprint.opportunities_json.length > 0) {
+        exportText += `### Identified Opportunities\n\n`;
+        blueprint.opportunities_json.forEach((opp: any, idx: number) => {
+          exportText += `${idx + 1}. **${opp.title || opp.name}**\n   - Problem: ${opp.problem || ""}\n   - Solution: ${opp.proposedSolution || ""}\n\n`;
+        });
+      } else {
+        exportText += `_No innovation opportunities or blueprint generated for this session._\n\n`;
+      }
+
+      const blob = new Blob([exportText], { type: "text/markdown" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `repopilot-${session.owner}-${session.repo}-full.md`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Export Ready",
+        message: `Downloaded ${session.title} full session bundle as Markdown.`,
+        type: "success",
+      });
+    } catch {
+      toast({
+        title: "Export Failed",
+        message: "Failed to compile full session export package.",
+        type: "error",
+      });
+    }
   }
 
   if (isFetchingSession && !session) {
@@ -189,12 +284,7 @@ Exported At: ${new Date().toISOString()}
           session={session}
           activeTab={activeTab}
           onTabChange={handleTabChange}
-          onOpenMobileMenu={() => {
-            const mobileTrigger = document.querySelector<HTMLButtonElement>(
-              '[aria-label="Open sidebar menu"]'
-            );
-            mobileTrigger?.click();
-          }}
+          onOpenMobileMenu={openMobileMenu}
           onExportAll={handleExportAll}
           onRefresh={handleRefresh}
           isRefreshing={isRefreshing}

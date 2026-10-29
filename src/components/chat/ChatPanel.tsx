@@ -12,10 +12,10 @@ import {
   RefreshCw,
   ArrowDown,
   Info,
+  Loader2,
 } from "lucide-react";
 import { Composer } from "./Composer";
 import { FileDrawer } from "./FileDrawer";
-import { ProgressStepper, StepItem } from "./ProgressStepper";
 import { MarkdownRenderer } from "./MarkdownRenderer";
 import { useToast } from "@/components/ui/Toast";
 import { useSessionWorkspaceOptional } from "@/context/SessionWorkspaceContext";
@@ -40,13 +40,6 @@ const STARTER_QUESTIONS = [
   "Does this project include automated tests or CI/CD pipelines?",
 ];
 
-const DEFAULT_STEPS: StepItem[] = [
-  { id: "context", label: "Inspect cached repository snapshot & query", status: "active" },
-  { id: "grounding", label: "Inspect repository files for evidence grounding", status: "pending" },
-  { id: "synthesis", label: "Synthesize response with Gemma", status: "pending" },
-  { id: "validation", label: "Validate file citations & JSON schema", status: "pending" },
-];
-
 export function ChatPanel({ repoUrl, sessionId }: ChatPanelProps) {
   const workspace = useSessionWorkspaceOptional();
   const [localMessages, setLocalMessages] = useState<ChatMessageItem[]>([]);
@@ -57,9 +50,6 @@ export function ChatPanel({ repoUrl, sessionId }: ChatPanelProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [lastFailedQuestion, setLastFailedQuestion] = useState<string | null>(null);
-
-  // Stepper state
-  const [pipelineSteps, setPipelineSteps] = useState<StepItem[]>(DEFAULT_STEPS);
 
   // Evidence Drawer state
   const [activeEvidence, setActiveEvidence] = useState<EvidenceReference | null>(null);
@@ -127,53 +117,43 @@ export function ChatPanel({ repoUrl, sessionId }: ChatPanelProps) {
     });
   }, []);
 
-  // Auto-scroll on new messages if near bottom
-  useEffect(() => {
-    if (!showScrollBottom) {
-      scrollToBottom(false);
-    }
-  }, [messages, isLoading, showScrollBottom, scrollToBottom]);
+  const isInitialMount = useRef(true);
 
-  // Stepper progression timer while loading
+  // Auto-scroll on new messages if near bottom (do not auto-scroll on initial mount of empty chat)
   useEffect(() => {
-    if (!isLoading) {
-      setPipelineSteps(DEFAULT_STEPS);
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
       return;
     }
+    if (messages.length > 0 && !showScrollBottom) {
+      scrollToBottom(false);
+    }
+  }, [messages.length, isLoading, showScrollBottom, scrollToBottom]);
 
-    const t1 = setTimeout(() => {
-      setPipelineSteps([
-        { id: "context", label: "Inspect cached repository snapshot & query", status: "completed" },
-        { id: "grounding", label: "Inspect repository files for evidence grounding", status: "active" },
-        { id: "synthesis", label: "Synthesize response with Gemma", status: "pending" },
-        { id: "validation", label: "Validate file citations & JSON schema", status: "pending" },
-      ]);
-    }, 1200);
-
-    const t2 = setTimeout(() => {
-      setPipelineSteps([
-        { id: "context", label: "Inspect cached repository snapshot & query", status: "completed" },
-        { id: "grounding", label: "Inspect repository files for evidence grounding", status: "completed" },
-        { id: "synthesis", label: "Synthesize response with Gemma", status: "active" },
-        { id: "validation", label: "Validate file citations & JSON schema", status: "pending" },
-      ]);
-    }, 3200);
-
-    const t3 = setTimeout(() => {
-      setPipelineSteps([
-        { id: "context", label: "Inspect cached repository snapshot & query", status: "completed" },
-        { id: "grounding", label: "Inspect repository files for evidence grounding", status: "completed" },
-        { id: "synthesis", label: "Synthesize response with Gemma", status: "completed" },
-        { id: "validation", label: "Validate file citations & JSON schema", status: "active" },
-      ]);
-    }, 5500);
-
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
+  // Window/viewport scroll listener for "Jump to latest"
+  useEffect(() => {
+    const checkScroll = () => {
+      const el = containerRef.current;
+      if (!el) return;
+      const scrollParent = el.closest(".overflow-y-auto") as HTMLElement | null;
+      if (scrollParent) {
+        const isNearBottom =
+          scrollParent.scrollHeight - scrollParent.scrollTop - scrollParent.clientHeight < 120;
+        setShowScrollBottom(!isNearBottom);
+      } else {
+        const isNearBottom =
+          window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 120;
+        setShowScrollBottom(!isNearBottom);
+      }
     };
-  }, [isLoading]);
+
+    const scrollParent = containerRef.current?.closest(".overflow-y-auto");
+    const target = scrollParent || window;
+    target.addEventListener("scroll", checkScroll, { passive: true });
+    return () => {
+      target.removeEventListener("scroll", checkScroll);
+    };
+  }, []);
 
   // Send message
   async function handleSend(
@@ -193,7 +173,7 @@ export function ChatPanel({ repoUrl, sessionId }: ChatPanelProps) {
 
     if (mode === "new") {
       const userMessage: ChatMessageItem = {
-        id: `user-${Date.now()}`,
+        id: `user-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         role: "user",
         content: q,
         created_at: new Date().toISOString(),
@@ -267,7 +247,7 @@ export function ChatPanel({ repoUrl, sessionId }: ChatPanelProps) {
 
       const answerData = data as ChatAnswer;
       const assistantMessage: ChatMessageItem = {
-        id: `asst-${Date.now()}`,
+        id: `asst-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         role: "assistant",
         content: answerData.answer,
         answerData,
@@ -329,7 +309,11 @@ export function ChatPanel({ repoUrl, sessionId }: ChatPanelProps) {
       });
       setTimeout(() => setCopiedMessageId(null), 2000);
     } catch {
-      // Fallback
+      toast({
+        title: "Copy Failed",
+        message: "Could not copy message to clipboard.",
+        type: "error",
+      });
     }
   }
 
@@ -481,7 +465,7 @@ export function ChatPanel({ repoUrl, sessionId }: ChatPanelProps) {
                         type="button"
                         onClick={() => openEvidenceDrawer(ev)}
                         title={`Click to view file excerpt: ${ev.reason}`}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-mono bg-[#fafafa] hover:bg-[#f0f0f0] hover:border-[#171717] text-[#333333] border border-[#ebebeb] transition-all cursor-pointer text-left"
+                        className="group inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-[11px] font-mono bg-[#fafafa] hover:bg-[#f0f0f0] hover:border-[#171717] text-[#333333] border border-[#ebebeb] transition-all cursor-pointer text-left"
                       >
                         <FileCode className="w-3 h-3 text-[#666666]" />
                         <span className="underline decoration-[#d4d4d4] group-hover:decoration-[#171717]">
@@ -501,23 +485,20 @@ export function ChatPanel({ repoUrl, sessionId }: ChatPanelProps) {
           );
         })}
 
-        {/* Real Progress Stepper during loading */}
+        {/* Honest Progress Indicator during loading */}
         {isLoading && (
-          <div className="space-y-3">
-            <ProgressStepper steps={pipelineSteps} />
-            <div className="p-3.5 rounded-lg border border-[#ebebeb] bg-white flex items-center justify-between text-xs font-mono text-[#666666]">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#171717] animate-ping" />
-                <span>Consulting repository files and synthesizing evidence-grounded answer...</span>
-              </div>
-              <button
-                type="button"
-                onClick={handleStop}
-                className="text-xs text-[#8f8f8f] hover:text-[#171717] underline decoration-[#d4d4d4]"
-              >
-                Cancel
-              </button>
+          <div className="p-4 rounded-lg border border-[#ebebeb] bg-white flex items-center justify-between text-xs font-mono text-[#666666]">
+            <div className="flex items-center gap-2.5">
+              <Loader2 className="w-4 h-4 animate-spin text-[#171717]" />
+              <span>Analyzing repository context and synthesizing grounded answer...</span>
             </div>
+            <button
+              type="button"
+              onClick={handleStop}
+              className="text-xs text-[#8f8f8f] hover:text-[#171717] underline decoration-[#d4d4d4]"
+            >
+              Cancel
+            </button>
           </div>
         )}
 

@@ -190,6 +190,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (configured) {
       await supabase.auth.signOut();
     }
+    if (typeof window !== "undefined") {
+      try {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < window.localStorage.length; i++) {
+          const key = window.localStorage.key(i);
+          if (key && (key.startsWith("repopilot_") || key.includes("repopilot"))) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach((k) => window.localStorage.removeItem(k));
+      } catch {
+        // Ignore storage errors
+      }
+    }
     setRawUser(null);
     setSession(null);
   }, [configured, supabase]);

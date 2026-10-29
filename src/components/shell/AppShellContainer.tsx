@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, createContext, useContext } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { MobileDrawer } from "./MobileDrawer";
@@ -8,6 +8,22 @@ import { CommandPalette } from "./CommandPalette";
 import { useSessionContext } from "@/context/SessionContext";
 import { useAuth } from "@/context/AuthContext";
 import { ToastProvider, useToast } from "@/components/ui/Toast";
+
+export interface MobileNavContextType {
+  isMobileMenuOpen: boolean;
+  openMobileMenu: () => void;
+  closeMobileMenu: () => void;
+}
+
+export const MobileNavContext = createContext<MobileNavContextType>({
+  isMobileMenuOpen: false,
+  openMobileMenu: () => {},
+  closeMobileMenu: () => {},
+});
+
+export function useMobileNav() {
+  return useContext(MobileNavContext);
+}
 
 function AppShellInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -141,63 +157,74 @@ Exported At: ${new Date().toISOString()}
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleNewSession]);
 
+  const openMobileMenu = useCallback(() => setIsMobileMenuOpen(true), []);
+  const closeMobileMenu = useCallback(() => setIsMobileMenuOpen(false), []);
+
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-[#fafafa] text-[#171717] font-sans">
-      {/* Desktop Sidebar (hidden on mobile) */}
-      <div className="hidden md:flex shrink-0">
-        <Sidebar
+    <MobileNavContext.Provider
+      value={{
+        isMobileMenuOpen,
+        openMobileMenu,
+        closeMobileMenu,
+      }}
+    >
+      <div className="flex h-screen w-full overflow-hidden bg-[#fafafa] text-[#171717] font-sans">
+        {/* Desktop Sidebar (hidden on mobile) */}
+        <div className="hidden md:flex shrink-0">
+          <Sidebar
+            sessions={sessions}
+            activeSessionId={activeSessionId}
+            onSelectSession={handleSelectSession}
+            onNewSession={handleNewSession}
+            onRenameSession={renameSession}
+            onTogglePinSession={togglePinSession}
+            onDeleteSession={handleDeleteSession}
+            onExportSession={handleExportSession}
+            user={currentUser}
+            isCollapsed={isCollapsed}
+            onToggleCollapse={() => setIsCollapsed((prev) => !prev)}
+            onSignOut={handleSignOut}
+          />
+        </div>
+
+        {/* Mobile Drawer */}
+        <MobileDrawer
+          isOpen={isMobileMenuOpen}
+          onClose={closeMobileMenu}
+        >
+          <Sidebar
+            sessions={sessions}
+            activeSessionId={activeSessionId}
+            onSelectSession={(id: string) => {
+              handleSelectSession(id);
+              closeMobileMenu();
+            }}
+            onNewSession={handleNewSession}
+            onRenameSession={renameSession}
+            onTogglePinSession={togglePinSession}
+            onDeleteSession={handleDeleteSession}
+            onExportSession={handleExportSession}
+            user={currentUser}
+            isCollapsed={false}
+            onToggleCollapse={() => {}}
+            onSignOut={handleSignOut}
+          />
+        </MobileDrawer>
+
+        {/* Main Canvas */}
+        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative">
+          {children}
+        </div>
+
+        {/* Global Command Palette */}
+        <CommandPalette
+          isOpen={isCommandPaletteOpen}
+          onClose={() => setIsCommandPaletteOpen(false)}
           sessions={sessions}
-          activeSessionId={activeSessionId}
-          onSelectSession={handleSelectSession}
           onNewSession={handleNewSession}
-          onRenameSession={renameSession}
-          onTogglePinSession={togglePinSession}
-          onDeleteSession={handleDeleteSession}
-          onExportSession={handleExportSession}
-          user={currentUser}
-          isCollapsed={isCollapsed}
-          onToggleCollapse={() => setIsCollapsed((prev) => !prev)}
-          onSignOut={handleSignOut}
         />
       </div>
-
-      {/* Mobile Drawer */}
-      <MobileDrawer
-        isOpen={isMobileMenuOpen}
-        onClose={() => setIsMobileMenuOpen(false)}
-      >
-        <Sidebar
-          sessions={sessions}
-          activeSessionId={activeSessionId}
-          onSelectSession={(id: string) => {
-            handleSelectSession(id);
-            setIsMobileMenuOpen(false);
-          }}
-          onNewSession={handleNewSession}
-          onRenameSession={renameSession}
-          onTogglePinSession={togglePinSession}
-          onDeleteSession={handleDeleteSession}
-          onExportSession={handleExportSession}
-          user={currentUser}
-          isCollapsed={false}
-          onToggleCollapse={() => {}}
-          onSignOut={handleSignOut}
-        />
-      </MobileDrawer>
-
-      {/* Main Canvas */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative">
-        {children}
-      </div>
-
-      {/* Global Command Palette */}
-      <CommandPalette
-        isOpen={isCommandPaletteOpen}
-        onClose={() => setIsCommandPaletteOpen(false)}
-        sessions={sessions}
-        onNewSession={handleNewSession}
-      />
-    </div>
+    </MobileNavContext.Provider>
   );
 }
 

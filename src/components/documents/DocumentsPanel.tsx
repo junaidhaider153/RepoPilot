@@ -37,6 +37,19 @@ export function DocumentsPanel({ repoUrl, sessionId }: DocumentsPanelProps) {
         if (!isMounted || !resData?.documents || !Array.isArray(resData.documents)) return;
         const docs = resData.documents;
         if (docs.length > 0) {
+          const allDoc = docs.find((d: any) => d.kind === "all");
+          if (allDoc?.content_md) {
+            try {
+              const parsed = JSON.parse(allDoc.content_md);
+              if (parsed?.markdown && parsed?.spec && parsed?.documents) {
+                setData(parsed);
+                return;
+              }
+            } catch {
+              // Fall through to manual markdown assembly
+            }
+          }
+
           const prdDoc = docs.find((d: any) => d.kind === "prd");
           const trdDoc = docs.find((d: any) => d.kind === "trd");
           const tddDoc = docs.find((d: any) => d.kind === "tdd");
