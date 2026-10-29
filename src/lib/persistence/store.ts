@@ -23,12 +23,41 @@ function generateUuid(): string {
 }
 
 // In-memory fallback stores for offline/mock development and tests
-const memoryProfiles = new Map<string, DbProfile>();
-const memorySessions = new Map<string, DbSession>();
-const memorySnapshots = new Map<string, DbRepoSnapshot>();
-const memoryMessages = new Map<string, DbMessage[]>();
-const memoryDocuments = new Map<string, DbDocument[]>();
-const memoryBlueprints = new Map<string, DbBlueprint>();
+// Bound to globalThis singletons so all Next.js API route chunks share the same state
+interface GlobalPersistenceStore {
+  __repopilot_memoryProfiles?: Map<string, DbProfile>;
+  __repopilot_memorySessions?: Map<string, DbSession>;
+  __repopilot_memorySnapshots?: Map<string, DbRepoSnapshot>;
+  __repopilot_memoryMessages?: Map<string, DbMessage[]>;
+  __repopilot_memoryDocuments?: Map<string, DbDocument[]>;
+  __repopilot_memoryBlueprints?: Map<string, DbBlueprint>;
+}
+
+const globalForPersistence = globalThis as unknown as GlobalPersistenceStore;
+
+export const memoryProfiles: Map<string, DbProfile> =
+  globalForPersistence.__repopilot_memoryProfiles ??
+  (globalForPersistence.__repopilot_memoryProfiles = new Map<string, DbProfile>());
+
+export const memorySessions: Map<string, DbSession> =
+  globalForPersistence.__repopilot_memorySessions ??
+  (globalForPersistence.__repopilot_memorySessions = new Map<string, DbSession>());
+
+export const memorySnapshots: Map<string, DbRepoSnapshot> =
+  globalForPersistence.__repopilot_memorySnapshots ??
+  (globalForPersistence.__repopilot_memorySnapshots = new Map<string, DbRepoSnapshot>());
+
+export const memoryMessages: Map<string, DbMessage[]> =
+  globalForPersistence.__repopilot_memoryMessages ??
+  (globalForPersistence.__repopilot_memoryMessages = new Map<string, DbMessage[]>());
+
+export const memoryDocuments: Map<string, DbDocument[]> =
+  globalForPersistence.__repopilot_memoryDocuments ??
+  (globalForPersistence.__repopilot_memoryDocuments = new Map<string, DbDocument[]>());
+
+export const memoryBlueprints: Map<string, DbBlueprint> =
+  globalForPersistence.__repopilot_memoryBlueprints ??
+  (globalForPersistence.__repopilot_memoryBlueprints = new Map<string, DbBlueprint>());
 
 // ---------------- Sessions ----------------
 

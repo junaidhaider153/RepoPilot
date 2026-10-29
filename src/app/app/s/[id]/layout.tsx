@@ -40,40 +40,97 @@ export default function SessionLayout({
     }
   }, [sessionId, getSession, sessions]);
 
-  // If not found in memory, try fetching from server before showing 404
+  // Ensure session exists on server (self-healing after process reboots)
   useEffect(() => {
-    if (session) return;
     let isMounted = true;
+    let clientSession = getSession(sessionId) || session;
 
-    setIsFetchingSession(true);
-    fetch(`/api/sessions/${sessionId}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Not found");
-        return res.json();
-      })
-      .then((data) => {
-        if (!isMounted) return;
-        if (data?.session) {
-          const s = data.session;
-          const extended: ExtendedSessionItem = {
-            id: s.id,
-            repoUrl: s.repo_url,
-            owner: s.owner,
-            repo: s.repo,
-            title: s.title,
-            pinned: s.pinned,
-            createdAt: s.created_at,
-            updatedAt: s.updated_at,
-            analysisResult: data.snapshot?.analysis_json,
-          };
-          addOrUpdateSession(extended);
-          setSession(extended);
-        } else {
-          setHasNotFound(true);
+    if (!clientSession && typeof window !== "undefined") {
+      try {
+        for (let i = 0; i < window.localStorage.length; i++) {
+          const key = window.localStorage.key(i);
+          if (key && key.startsWith("repopilot_sessions")) {
+            const raw = window.localStorage.getItem(key);
+            if (raw) {
+              const list = JSON.parse(raw);
+              if (Array.isArray(list)) {
+                const match = list.find((it: any) => it.id === sessionId);
+                if (match) {
+                  clientSession = match;
+                  break;
+                }
+              }
+            }
+          }
         }
+      } catch {
+        // Fallback
+      }
+    }
+
+    fetch(`/api/sessions/${sessionId}`)
+      .then(async (res) => {
+        if (res.ok) {
+          const data = await res.json();
+          if (!isMounted) return;
+          if (data?.session) {
+            const s = data.session;
+            const extended: ExtendedSessionItem = {
+              id: s.id,
+              repoUrl: s.repo_url,
+              owner: s.owner,
+              repo: s.repo,
+              title: s.title,
+              pinned: s.pinned,
+              createdAt: s.created_at,
+              updatedAt: s.updated_at,
+              analysisResult: data.snapshot?.analysis_json || clientSession?.analysisResult,
+            };
+            addOrUpdateSession(extended);
+            setSession(extended);
+          }
+          return;
+        }
+
+        // Server returned 404 (e.g. server restarted in memory mode)
+        // If client already has this session from localStorage, re-register on server
+        if (clientSession && clientSession.repoUrl) {
+          try {
+            const reRegRes = await fetch("/api/sessions", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                id: clientSession.id,
+                repoUrl: clientSession.repoUrl,
+                owner: clientSession.owner,
+                repo: clientSession.repo,
+                title: clientSession.title,
+              }),
+            });
+
+            if (reRegRes.ok) {
+              // Also re-cache snapshot if client has it
+              if (clientSession.analysisResult) {
+                await fetch("/api/repository/analyze", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    url: clientSession.repoUrl,
+                    sessionId: clientSession.id,
+                  }),
+                }).catch(() => {});
+              }
+              return;
+            }
+          } catch {
+            // Ignore
+          }
+        }
+
+        if (isMounted) setHasNotFound(true);
       })
       .catch(() => {
-        if (isMounted) setHasNotFound(true);
+        if (!clientSession && isMounted) setHasNotFound(true);
       })
       .finally(() => {
         if (isMounted) setIsFetchingSession(false);
@@ -82,7 +139,7 @@ export default function SessionLayout({
     return () => {
       isMounted = false;
     };
-  }, [sessionId, session, addOrUpdateSession]);
+  }, [sessionId, session, getSession, addOrUpdateSession]);
 
   // Determine active tab from pathname
   const activeTab: SessionTab = pathname.endsWith("/overview")

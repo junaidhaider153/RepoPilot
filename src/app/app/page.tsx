@@ -57,27 +57,30 @@ export default function NewSessionPage() {
       const title = `${owner}/${repo}`;
 
       // 2. Persist session on server first
-      let serverSessionId: string | undefined;
-      try {
-        const sessRes = await fetch("/api/sessions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            repoUrl: rawUrl,
-            owner,
-            repo,
-            title,
-          }),
-        });
+      const sessRes = await fetch("/api/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          repoUrl: rawUrl,
+          owner,
+          repo,
+          title,
+        }),
+      });
 
-        if (sessRes.ok) {
-          const sessData = await sessRes.json();
-          if (sessData.session?.id) {
-            serverSessionId = sessData.session.id;
-          }
-        }
-      } catch {
-        // Fall back to client session ID if server unreachable
+      const sessData = await sessRes.json().catch(() => null);
+
+      if (!sessRes.ok) {
+        throw new Error(
+          sessData?.error?.message ||
+          sessData?.error ||
+          "Failed to initialize session on server. Please try again."
+        );
+      }
+
+      const serverSessionId = sessData?.session?.id;
+      if (!serverSessionId) {
+        throw new Error("Server did not return a valid session ID.");
       }
 
       // 3. Analyze codebase with sessionId so server caches the snapshot
