@@ -43,7 +43,11 @@ function LoginForm() {
     setErrorMessage(null);
     const result = await signInWithOAuth("github");
     if (!result.success) {
-      setErrorMessage(result.error || "Failed to initiate GitHub authentication.");
+      setErrorMessage(
+        result.error?.includes("Unsupported provider") || result.error?.includes("not enabled")
+          ? "GitHub authentication is not enabled in your Supabase project. Please enable GitHub in Supabase Dashboard → Authentication → Providers, or log in with Email below."
+          : result.error || "Failed to initiate GitHub authentication."
+      );
       setIsLoading(false);
     }
   }

@@ -18,6 +18,7 @@ interface AuthContextType {
     password: string
   ) => Promise<{ success: boolean; requiresConfirmation?: boolean; error?: string }>;
   resendSignUpEmail: (email: string) => Promise<{ success: boolean; error?: string }>;
+  verifySignUpOtp: (email: string, token: string) => Promise<{ success: boolean; error?: string }>;
   signInWithOAuth: (provider: "github") => Promise<{ success: boolean; error?: string }>;
   signOut: () => Promise<void>;
   sendPasswordReset: (email: string) => Promise<{ success: boolean; error?: string }>;
@@ -187,6 +188,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [configured, supabase]
   );
 
+  const verifySignUpOtp = useCallback(
+    async (email: string, token: string): Promise<{ success: boolean; error?: string }> => {
+      const cleanToken = token.trim().replace(/\s+/g, "").replace(/-/g, "");
+      if (!cleanToken) {
+        return { success: false, error: "Please enter the verification code." };
+      }
+
+      if (!configured) {
+        return { success: true };
+      }
+
+      try {
+        let { data, error } = await supabase.auth.verifyOtp({
+          email: email.trim(),
+          token: cleanToken,
+          type: "signup",
+        });
+
+        if (error) {
+          const fallback = await supabase.auth.verifyOtp({
+            email: email.trim(),
+            token: cleanToken,
+            type: "email",
+          });
+          if (!fallback.error) {
+            data = fallback.data;
+            error = null;
+          }
+        }
+
+        if (error) {
+          return {
+            success: false,
+            error: error.message || "Invalid or expired passcode. Please check the code in your email.",
+          };
+        }
+
+        if (data.session) {
+          setSession(data.session);
+          setRawUser(data.session.user);
+        }
+
+        return { success: true };
+      } catch (err: unknown) {
+        return {
+          success: false,
+          error: err instanceof Error ? err.message : "Unable to verify passcode. Please try again.",
+        };
+      }
+    },
+    [configured, supabase]
+  );
+
   const signInWithOAuth = useCallback(
     async (provider: "github"): Promise<{ success: boolean; error?: string }> => {
       if (!configured) {
@@ -291,6 +345,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithEmail,
       signUpWithEmail,
       resendSignUpEmail,
+      verifySignUpOtp,
       signInWithOAuth,
       signOut,
       sendPasswordReset,
@@ -305,6 +360,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithEmail,
       signUpWithEmail,
       resendSignUpEmail,
+      verifySignUpOtp,
       signInWithOAuth,
       signOut,
       sendPasswordReset,

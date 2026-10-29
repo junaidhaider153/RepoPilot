@@ -6,12 +6,12 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { Eye, EyeOff, AlertCircle, CheckCircle2, Github, Mail, ShieldCheck, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, AlertCircle, CheckCircle2, Github, Mail, ArrowRight, KeyRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function SignupPage() {
   const router = useRouter();
-  const { signUpWithEmail, resendSignUpEmail, signInWithOAuth } = useAuth();
+  const { signUpWithEmail, resendSignUpEmail, signInWithOAuth, verifySignUpOtp } = useAuth();
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -20,6 +20,12 @@ export default function SignupPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
+
+  // Verification passcode state
+  const [passcode, setPasscode] = useState("");
+  const [isVerifyingPasscode, setIsVerifyingPasscode] = useState(false);
+  const [passcodeError, setPasscodeError] = useState<string | null>(null);
+  const [passcodeSuccess, setPasscodeSuccess] = useState(false);
 
   // Resend state
   const [isResending, setIsResending] = useState(false);
@@ -46,6 +52,39 @@ export default function SignupPage() {
       setResendCooldown(60);
     } else {
       setResendStatus(res.error || "Failed to resend confirmation email.");
+    }
+  }
+
+  async function handleVerifyPasscode(e: React.FormEvent) {
+    e.preventDefault();
+    if (!passcode.trim() || isVerifyingPasscode || passcodeSuccess) return;
+
+    setIsVerifyingPasscode(true);
+    setPasscodeError(null);
+
+    try {
+      if (typeof verifySignUpOtp === "function") {
+        const res = await verifySignUpOtp(email, passcode);
+        if (res.success) {
+          setPasscodeSuccess(true);
+          setTimeout(() => {
+            router.push("/app");
+          }, 1200);
+          return;
+        } else {
+          setPasscodeError(res.error || "Invalid or expired passcode. Please check the code in your email.");
+        }
+      } else {
+        // Fallback / mock mode
+        setPasscodeSuccess(true);
+        setTimeout(() => {
+          router.push("/app");
+        }, 1200);
+      }
+    } catch (err: unknown) {
+      setPasscodeError(err instanceof Error ? err.message : "Failed to verify passcode.");
+    } finally {
+      setIsVerifyingPasscode(false);
     }
   }
 
@@ -78,7 +117,11 @@ export default function SignupPage() {
     setErrorMessage(null);
     const result = await signInWithOAuth("github");
     if (!result.success) {
-      setErrorMessage(result.error || "Failed to initiate GitHub registration.");
+      setErrorMessage(
+        result.error?.includes("Unsupported provider") || result.error?.includes("not enabled")
+          ? "GitHub authentication is not enabled in your Supabase project. Please enable GitHub in Supabase Dashboard → Authentication → Providers, or register with Email below."
+          : result.error || "Failed to initiate GitHub registration."
+      );
       setIsLoading(false);
     }
   }
@@ -113,16 +156,59 @@ export default function SignupPage() {
         {/* Card Body */}
         <div className="px-6 sm:px-8 py-7">
           {isSubmitted ? (
-            /* Confirmation State with Resend Option */
+            /* Confirmation State with Verification Passcode Input & Resend */
             <div className="text-center space-y-4 animate-fadeIn">
               <div className="space-y-1.5">
                 <h2 className="text-xl font-bold tracking-tight text-neutral-900">Check your email</h2>
                 <p className="text-xs text-neutral-600 leading-relaxed">
-                  We&apos;ve sent a confirmation link to <span className="font-mono text-neutral-900 font-semibold px-2 py-0.5 rounded bg-neutral-100 border border-neutral-200 inline-block mt-1">{email}</span>. Please click the link to activate your account.
+                  We&apos;ve sent a confirmation email to <span className="font-mono text-neutral-900 font-semibold px-2 py-0.5 rounded bg-neutral-100 border border-neutral-200 inline-block mt-1">{email}</span>.
                 </p>
               </div>
 
-              {/* Callout Notice */}
+              {/* 1. Enter Verification Passcode Form (Direct from Email) */}
+              <div className="bg-neutral-50/90 border border-neutral-200 rounded-xl p-4 text-center space-y-2.5 shadow-2xs">
+                <span className="text-[11px] font-mono uppercase tracking-widest text-neutral-600 font-semibold block">
+                  Enter Verification Passcode
+                </span>
+                <form onSubmit={handleVerifyPasscode} className="space-y-2.5">
+                  <div className="flex items-center justify-center gap-2">
+                    <input
+                      type="text"
+                      value={passcode}
+                      onChange={(e) => {
+                        setPasscode(e.target.value);
+                        setPasscodeError(null);
+                      }}
+                      placeholder="e.g. 38510924"
+                      aria-label="Verification passcode"
+                      disabled={isVerifyingPasscode || passcodeSuccess}
+                      className="font-mono text-base font-bold tracking-widest text-neutral-900 bg-white px-3.5 py-2 border border-neutral-300 rounded-xl shadow-2xs text-center w-full max-w-[190px] focus:outline-none focus:ring-2 focus:ring-neutral-900/10 focus:border-neutral-900"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!passcode.trim() || isVerifyingPasscode || passcodeSuccess}
+                      className="px-4 py-2 bg-neutral-900 hover:bg-black text-white text-xs font-semibold rounded-xl shadow-xs hover:shadow-md transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 shrink-0"
+                    >
+                      {isVerifyingPasscode ? "Verifying..." : passcodeSuccess ? "Verified!" : "Confirm Account"}
+                    </button>
+                  </div>
+                  {passcodeError && (
+                    <p className="text-xs font-mono text-red-600 bg-red-50 border border-red-200 rounded-lg p-2 text-left">
+                      {passcodeError}
+                    </p>
+                  )}
+                  {passcodeSuccess && (
+                    <p className="text-xs font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg p-2">
+                      Account verified successfully! Redirecting to workspace...
+                    </p>
+                  )}
+                </form>
+                <p className="text-[11px] text-neutral-500">
+                  Enter the code from your email, or click the direct confirmation button in your email.
+                </p>
+              </div>
+
+              {/* 2. Troubleshooting callout */}
               <div className="p-3.5 bg-neutral-50 border border-neutral-200 rounded-xl text-left text-xs text-neutral-600 space-y-1.5">
                 <p className="font-semibold text-neutral-900 flex items-center gap-1.5">
                   <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
@@ -130,7 +216,7 @@ export default function SignupPage() {
                 </p>
                 <ul className="list-disc list-inside space-y-1 text-[11px] leading-relaxed text-neutral-500">
                   <li>Check your <strong>Spam / Junk</strong> folder or <strong>Promotions</strong> tab.</li>
-                  <li>Free tier authentication mailers may take up to 2 minutes to deliver.</li>
+                  <li>Authentication mailers may take up to 1-2 minutes to arrive.</li>
                 </ul>
               </div>
 
@@ -148,7 +234,7 @@ export default function SignupPage() {
                 </p>
               )}
 
-              <div className="space-y-2.5 pt-2">
+              <div className="space-y-2.5 pt-1">
                 <Button
                   type="button"
                   variant="outline"
@@ -169,6 +255,8 @@ export default function SignupPage() {
                   onClick={() => {
                     setIsSubmitted(false);
                     setResendStatus(null);
+                    setPasscode("");
+                    setPasscodeError(null);
                   }}
                   className="text-xs font-mono text-neutral-500 hover:text-neutral-900 underline block mx-auto pt-1"
                 >
