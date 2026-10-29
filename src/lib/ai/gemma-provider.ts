@@ -124,15 +124,12 @@ export class GemmaProvider implements InferenceProvider {
         const payload: Record<string, unknown> = {
           model: currentModel,
           messages: options.messages,
+          temperature: options.temperature ?? 0.2,
+          max_tokens: options.maxTokens ?? 4096,
         };
 
-        // Google Generative Language API's OpenAI compatibility layer rejects temperature and response_format
-        if (!isGoogleEndpoint) {
-          payload.temperature = options.temperature ?? 0.2;
-          payload.max_tokens = options.maxTokens ?? 4096;
-          if (options.responseFormat === "json_object") {
-            payload.response_format = { type: "json_object" };
-          }
+        if (options.responseFormat === "json_object") {
+          payload.response_format = { type: "json_object" };
         }
 
         const maxRetries = this.maxRetries;

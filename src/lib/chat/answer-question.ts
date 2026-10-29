@@ -49,6 +49,7 @@ export async function answerRepositoryQuestion({
       messages,
       temperature: 0.1,
       responseFormat: "json_object",
+      maxTokens: 4096,
     });
     rawContent = completion.content;
   } catch (err: unknown) {
@@ -65,10 +66,33 @@ export async function answerRepositoryQuestion({
   try {
     parsed = extractAndParseJson(rawContent, ChatAnswerSchema);
   } catch (err: unknown) {
-    throw new AIProviderError(
-      "AI_OUTPUT_INVALID",
-      `The AI model produced invalid answer JSON: ${err instanceof Error ? err.message : String(err)}`
-    );
+    // Resilient fallback: extract text if the model returned prose or unclosed JSON answer
+    const answerMatch = rawContent.match(/"answer"\s*:\s*"([\s\S]*?)(?:",\s*"evidence"|"$|"\s*\}|$)/i);
+    let fallbackText = "";
+    if (answerMatch && answerMatch[1]) {
+      fallbackText = answerMatch[1].replace(/\\n/g, "\n").replace(/\\"/g, '"').trim();
+    } else {
+      fallbackText = rawContent
+        .replace(/```(?:json)?/gi, "")
+        .replace(/```/g, "")
+        .replace(/^\s*\{\s*"answer"\s*:\s*"?/i, "")
+        .replace(/"?\s*\}?\s*$/i, "")
+        .trim();
+    }
+
+    if (fallbackText && fallbackText.length > 5) {
+      parsed = {
+        answer: fallbackText,
+        evidence: [],
+        insufficientEvidence: false,
+        confidence: "medium",
+      };
+    } else {
+      throw new AIProviderError(
+        "AI_OUTPUT_INVALID",
+        `The AI model produced invalid answer JSON: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
   }
 
   // Clean thought tags if embedded in answer string

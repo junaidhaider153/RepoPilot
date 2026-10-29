@@ -190,6 +190,21 @@ Hope this helps! See documentation at [docs link](https://example.com).`;
     expect(parsed.version).toBe("1.0.0");
   });
 
+  it("extractAndParseJson resiliently repairs unterminated strings and truncated JSON tokens", () => {
+    // Truncated mid-string at line 2 without closing quote or closing brace
+    const truncated = `{\n  "answer": "spaCy is structured into core components such as pipeline, vocab, and tokenization.`;
+    const parsed = extractAndParseJson(truncated, ChatAnswerSchema);
+    expect(parsed.answer).toContain("spaCy is structured into core components");
+    expect(Array.isArray(parsed.evidence)).toBe(true);
+    expect(parsed.insufficientEvidence).toBe(false);
+  });
+
+  it("extractAndParseJson resiliently escapes raw unescaped newlines inside strings", () => {
+    const rawWithUnescapedNewlines = '{\n  "answer": "Line 1\nLine 2\nLine 3",\n  "evidence": []\n}';
+    const parsed = extractAndParseJson(rawWithUnescapedNewlines, ChatAnswerSchema);
+    expect(parsed.answer).toBe("Line 1\nLine 2\nLine 3");
+  });
+
   it("StringArrayCoerce strips list bullets while preserving version numbers", () => {
     const raw = "1. Node.js 18\n* 3.11 - Python\n- React 19";
     const schema = z.object({ items: StringArrayCoerce });

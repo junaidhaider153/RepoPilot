@@ -166,7 +166,103 @@ export const InnovationBlueprintSchema = z.object({
 export type InnovationBlueprint = z.infer<typeof InnovationBlueprintSchema>;
 
 /**
- * Helper to safely parse and extract JSON from model responses that might contain markdown fences.
+ * Repairs common JSON formatting flaws emitted by LLMs:
+ * 1. Unescaped control characters in string literals
+ * 2. Unterminated strings from token cutoffs
+ * 3. Unclosed brackets and braces
+ */
+export function repairJsonString(raw: string): string {
+  let text = raw.trim();
+
+  // Strip code fences if present
+  const fenceMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (fenceMatch && fenceMatch[1]) {
+    text = fenceMatch[1].trim();
+  }
+
+  // Find start bracket
+  const firstBrace = text.indexOf("{");
+  const firstBracket = text.indexOf("[");
+  let startIdx = -1;
+  if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+    startIdx = firstBrace;
+  } else if (firstBracket !== -1) {
+    startIdx = firstBracket;
+  }
+  if (startIdx !== -1) {
+    text = text.slice(startIdx);
+  }
+
+  // Escape raw unescaped newlines/tabs inside string literals
+  let cleaned = "";
+  let inString = false;
+  let escapes = 0;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === "\\") {
+      escapes++;
+      cleaned += ch;
+    } else if (ch === '"' && escapes % 2 === 0) {
+      inString = !inString;
+      escapes = 0;
+      cleaned += ch;
+    } else {
+      if (inString) {
+        if (ch === "\n") {
+          cleaned += "\\n";
+        } else if (ch === "\r") {
+          cleaned += "\\r";
+        } else if (ch === "\t") {
+          cleaned += "\\t";
+        } else {
+          cleaned += ch;
+        }
+      } else {
+        cleaned += ch;
+      }
+      escapes = 0;
+    }
+  }
+
+  // If inString is true at the end, string was unterminated -> close it
+  if (inString) {
+    cleaned += '"';
+  }
+
+  // Balance unclosed brackets and braces
+  const stack: string[] = [];
+  inString = false;
+  escapes = 0;
+  for (let i = 0; i < cleaned.length; i++) {
+    const ch = cleaned[i];
+    if (ch === "\\") {
+      escapes++;
+    } else if (ch === '"' && escapes % 2 === 0) {
+      inString = !inString;
+      escapes = 0;
+    } else if (!inString) {
+      if (ch === "{") stack.push("}");
+      else if (ch === "[") stack.push("]");
+      else if (ch === "}" || ch === "]") {
+        if (stack.length > 0 && stack[stack.length - 1] === ch) {
+          stack.pop();
+        }
+      }
+      escapes = 0;
+    } else {
+      escapes = 0;
+    }
+  }
+
+  while (stack.length > 0) {
+    cleaned += stack.pop();
+  }
+
+  return cleaned;
+}
+
+/**
+ * Helper to safely parse and extract JSON from model responses that might contain markdown fences or truncation.
  */
 export function extractAndParseJson<T>(rawText: string, schema: z.ZodType<T, any, any>): T {
   let cleaned = rawText.trim();
@@ -215,10 +311,16 @@ export function extractAndParseJson<T>(rawText: string, schema: z.ZodType<T, any
   let parsed: unknown;
   try {
     parsed = JSON.parse(cleaned);
-  } catch (err: unknown) {
-    throw new Error(
-      `Model response is not valid JSON: ${err instanceof Error ? err.message : String(err)}`
-    );
+  } catch {
+    // Attempt automatic JSON repair for control characters and unterminated strings
+    try {
+      const repaired = repairJsonString(rawText);
+      parsed = JSON.parse(repaired);
+    } catch (err: unknown) {
+      throw new Error(
+        `Model response is not valid JSON: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
   }
 
   return schema.parse(parsed);
