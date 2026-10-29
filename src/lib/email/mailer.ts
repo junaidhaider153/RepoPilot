@@ -45,7 +45,9 @@ export function getSmtpConfig(): SmtpConfig | null {
       : port === 465;
 
   const user = process.env.SMTP_USER!.trim();
-  const pass = process.env.SMTP_PASS!.trim();
+  const rawPass = process.env.SMTP_PASS!.trim();
+  // Strip surrounding quotes and all internal whitespace (e.g. Google's 4-chunk format "abcd efgh ijkl mnop")
+  const pass = rawPass.replace(/^["']|["']$/g, "").replace(/\s+/g, "");
   const from = process.env.SMTP_FROM?.trim() || `RepoPilot <${user}>`;
 
   return {
@@ -75,28 +77,56 @@ export async function sendEmail({
     );
   }
 
-  const transporter = nodemailer.createTransport({
-    host: config.host,
-    port: config.port,
-    secure: config.secure,
-    auth: {
-      user: config.auth.user,
-      pass: config.auth.pass,
-    },
-  });
+  const isGmail =
+    config.host.toLowerCase().includes("gmail") ||
+    config.auth.user.toLowerCase().includes("@gmail.com");
 
-  const info = await transporter.sendMail({
-    from: config.from,
-    to,
-    subject,
-    html,
-    text: text || html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
-  });
+  const transporter = nodemailer.createTransport(
+    isGmail
+      ? {
+          service: "gmail",
+          auth: {
+            user: config.auth.user,
+            pass: config.auth.pass,
+          },
+        }
+      : {
+          host: config.host,
+          port: config.port,
+          secure: config.secure,
+          auth: {
+            user: config.auth.user,
+            pass: config.auth.pass,
+          },
+        }
+  );
 
-  return {
-    success: true,
-    messageId: info.messageId,
-  };
+  try {
+    const info = await transporter.sendMail({
+      from: config.from,
+      to,
+      subject,
+      html,
+      text: text || html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim(),
+    });
+
+    return {
+      success: true,
+      messageId: info.messageId,
+    };
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    if (
+      errMsg.includes("535") ||
+      errMsg.includes("BadCredentials") ||
+      errMsg.includes("Username and Password not accepted")
+    ) {
+      throw new Error(
+        "Gmail authentication failed (Bad Credentials). If 2-Step Verification is enabled on your Google Account, you must use a 16-character Google App Password (from myaccount.google.com/apppasswords), NOT your normal Gmail password. Also verify that SMTP_USER is your exact Gmail address."
+      );
+    }
+    throw err;
+  }
 }
 
 /**

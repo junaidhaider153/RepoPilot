@@ -144,7 +144,8 @@ export default function LibraryPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 space-y-6">
+    <div className="flex-1 h-full w-full overflow-y-auto bg-[#fafafa]">
+      <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-[#ebebeb] pb-4">
         <div>
@@ -368,6 +369,7 @@ export default function LibraryPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

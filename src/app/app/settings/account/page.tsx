@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/components/ui/Toast";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ShieldAlert,
   Smartphone,
@@ -17,10 +17,35 @@ import {
   Check,
 } from "lucide-react";
 
-export default function AccountSettingsPage() {
+function AccountSettingsContent() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const [confirmedEmailParam, setConfirmedEmailParam] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!searchParams) return;
+    if (searchParams.get("email_updated") === "true") {
+      const confirmed = searchParams.get("email");
+      if (confirmed) {
+        setConfirmedEmailParam(confirmed);
+      }
+      toast({
+        title: "Email verified & updated",
+        message: confirmed
+          ? `Your primary account email has been updated to ${confirmed}.`
+          : "Your primary account email has been successfully updated.",
+        type: "success",
+      });
+    } else if (searchParams.get("error")) {
+      toast({
+        title: "Verification failed",
+        message: searchParams.get("error") || "Verification token is invalid or expired.",
+        type: "error",
+      });
+    }
+  }, [searchParams, toast]);
 
   // Password change state
   const [currentPassword, setCurrentPassword] = useState("");
@@ -204,7 +229,7 @@ export default function AccountSettingsPage() {
     }
   }
 
-  const userEmail = user?.email || "developer@repopilot.local";
+  const userEmail = confirmedEmailParam || user?.email || "developer@repopilot.local";
   const isDeleteConfirmed = typedConfirmEmail.trim().toLowerCase() === userEmail.toLowerCase();
 
   return (
@@ -474,5 +499,13 @@ export default function AccountSettingsPage() {
         </div>
       </Modal>
     </div>
+  );
+}
+
+export default function AccountSettingsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-xs font-mono text-[#8f8f8f]">Loading account settings...</div>}>
+      <AccountSettingsContent />
+    </Suspense>
   );
 }
