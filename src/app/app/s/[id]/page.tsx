@@ -25,7 +25,7 @@ export default function SessionChatPage({
   }
 
   return (
-    <div className="max-w-[768px] w-full mx-auto px-4 py-6">
+    <div className="max-w-[768px] w-full mx-auto px-4 py-6 pb-24">
       <ChatPanel repoUrl={session.repoUrl} sessionId={session.id} />
     </div>
   );

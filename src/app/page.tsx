@@ -141,7 +141,7 @@ export default function HomePage() {
         </div>
       )}
 
-      <main className="flex-1 max-w-[1280px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      <main className="flex-1 max-w-[1280px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 pb-28 sm:pb-32">
         {!analysisResult || !analyzedUrl ? (
           /* ============================================================ */
           /* Initial Chat-First Guest Entry & Centered Composer           */

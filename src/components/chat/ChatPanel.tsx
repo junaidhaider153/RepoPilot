@@ -60,6 +60,7 @@ export function ChatPanel({ repoUrl, sessionId }: ChatPanelProps) {
 
   // Scroll anchoring states
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -104,14 +105,23 @@ export function ChatPanel({ repoUrl, sessionId }: ChatPanelProps) {
 
   // Handle scroll detection for "Jump to latest"
   const handleScroll = useCallback(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
-    setShowScrollBottom(!isNearBottom);
+    const bottomEl = chatBottomRef.current;
+    if (!bottomEl) return;
+    const scrollParent = containerRef.current?.closest(".overflow-y-auto") as HTMLElement | null;
+    if (scrollParent) {
+      const isNearBottom =
+        scrollParent.scrollHeight - scrollParent.scrollTop - scrollParent.clientHeight < 220;
+      setShowScrollBottom(!isNearBottom);
+    } else {
+      const rect = bottomEl.getBoundingClientRect();
+      const isNearBottom = rect.top <= window.innerHeight + 250;
+      setShowScrollBottom(!isNearBottom);
+    }
   }, []);
 
   const scrollToBottom = useCallback((smooth = true) => {
-    messagesEndRef.current?.scrollIntoView({
+    // Scroll the entire chat bottom (including composer) into view
+    chatBottomRef.current?.scrollIntoView({
       behavior: smooth ? "smooth" : "auto",
       block: "end",
     });
@@ -133,16 +143,16 @@ export function ChatPanel({ repoUrl, sessionId }: ChatPanelProps) {
   // Window/viewport scroll listener for "Jump to latest"
   useEffect(() => {
     const checkScroll = () => {
-      const el = containerRef.current;
-      if (!el) return;
-      const scrollParent = el.closest(".overflow-y-auto") as HTMLElement | null;
+      const bottomEl = chatBottomRef.current;
+      if (!bottomEl) return;
+      const scrollParent = containerRef.current?.closest(".overflow-y-auto") as HTMLElement | null;
       if (scrollParent) {
         const isNearBottom =
-          scrollParent.scrollHeight - scrollParent.scrollTop - scrollParent.clientHeight < 120;
+          scrollParent.scrollHeight - scrollParent.scrollTop - scrollParent.clientHeight < 220;
         setShowScrollBottom(!isNearBottom);
       } else {
-        const isNearBottom =
-          window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 120;
+        const rect = bottomEl.getBoundingClientRect();
+        const isNearBottom = rect.top <= window.innerHeight + 250;
         setShowScrollBottom(!isNearBottom);
       }
     };
@@ -546,11 +556,11 @@ export function ChatPanel({ repoUrl, sessionId }: ChatPanelProps) {
 
       {/* Floating "Jump to latest" button */}
       {showScrollBottom && (
-        <div className="sticky bottom-20 flex justify-center z-10">
+        <div className="sticky bottom-24 flex justify-center z-30 pointer-events-none">
           <button
             type="button"
             onClick={() => scrollToBottom(true)}
-            className="px-3 py-1.5 rounded-full bg-[#171717] text-white text-xs font-mono shadow-md hover:bg-black flex items-center gap-1.5 transition-all animate-bounce"
+            className="pointer-events-auto px-3.5 py-1.5 rounded-full bg-[#171717] text-white text-xs font-mono shadow-md hover:bg-black flex items-center gap-1.5 transition-all animate-bounce"
           >
             <ArrowDown className="w-3 h-3" />
             <span>Jump to latest</span>
@@ -558,16 +568,21 @@ export function ChatPanel({ repoUrl, sessionId }: ChatPanelProps) {
         </div>
       )}
 
-      {/* Composer Input Area */}
-      <Composer
-        value={inputQuestion}
-        onChange={setInputQuestion}
-        onSend={(text) => handleSend(text)}
-        onStop={handleStop}
-        isLoading={isLoading}
-        sessionId={sessionId || "guest"}
-        placeholder="Ask a question about the repository (e.g. How is routing handled?)..."
-      />
+      {/* Composer Input Area - sticky bottom with translucent gradient */}
+      <div className="sticky bottom-0 z-20 pt-2 pb-3 bg-gradient-to-t from-neutral-100/95 via-neutral-100/90 to-transparent backdrop-blur-[2px]">
+        <Composer
+          value={inputQuestion}
+          onChange={setInputQuestion}
+          onSend={(text) => handleSend(text)}
+          onStop={handleStop}
+          isLoading={isLoading}
+          sessionId={sessionId || "guest"}
+          placeholder="Ask a question about the repository (e.g. How is routing handled?)..."
+        />
+      </div>
+
+      {/* Dedicated chat bottom anchor for clean scroll alignment */}
+      <div ref={chatBottomRef} className="h-1 w-full" aria-hidden="true" />
 
       {/* Slide-over File Drawer */}
       <FileDrawer

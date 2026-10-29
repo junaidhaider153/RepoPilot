@@ -103,7 +103,7 @@ export default function SessionOverviewPage({
   }
 
   return (
-    <div className="max-w-[1000px] w-full mx-auto px-4 sm:px-6 py-6">
+    <div className="max-w-[1000px] w-full mx-auto px-4 sm:px-6 py-6 pb-24">
       <OverviewPanel data={session.analysisResult} />
     </div>
   );

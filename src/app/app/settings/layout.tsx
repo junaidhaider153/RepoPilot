@@ -23,7 +23,7 @@ export default function SettingsLayout({
 
   return (
     <div className="flex-1 h-full w-full overflow-y-auto bg-neutral-100/60 antialiased">
-      <div className="max-w-5xl mx-auto py-8 sm:py-10 px-4 sm:px-6 space-y-6 animate-fadeIn">
+      <div className="max-w-5xl mx-auto py-8 sm:py-10 px-4 sm:px-6 pb-28 space-y-6 animate-fadeIn">
         {/* Top Header */}
         <div className="flex items-center justify-between border-b border-neutral-200/90 pb-4">
           <div>
