@@ -61,8 +61,20 @@ export default function AccountSettingsPage() {
 
     setIsChangingPassword(true);
     try {
-      // Simulate/apply password update
-      await new Promise((r) => setTimeout(r, 600));
+      const res = await fetch("/api/account/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast({
+          title: "Password update failed",
+          message: data?.error?.message || "Failed to update password.",
+          type: "error",
+        });
+        return;
+      }
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -70,6 +82,12 @@ export default function AccountSettingsPage() {
         title: "Password updated",
         message: "Your password has been changed successfully.",
         type: "success",
+      });
+    } catch (err: unknown) {
+      toast({
+        title: "Password update failed",
+        message: err instanceof Error ? err.message : "Error contacting server.",
+        type: "error",
       });
     } finally {
       setIsChangingPassword(false);
@@ -82,13 +100,32 @@ export default function AccountSettingsPage() {
 
     setIsRequestingEmail(true);
     try {
-      await new Promise((r) => setTimeout(r, 600));
+      const res = await fetch("/api/account/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newEmail: newEmail.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast({
+          title: "Email update failed",
+          message: data?.error?.message || "Failed to send verification email.",
+          type: "error",
+        });
+        return;
+      }
       toast({
         title: "Verification email sent",
-        message: `A confirmation link was sent to ${newEmail}. Please verify to complete the change.`,
-        type: "info",
+        message: data?.message || `A confirmation link was sent to ${newEmail}. Please verify to complete the change.`,
+        type: "success",
       });
       setNewEmail("");
+    } catch (err: unknown) {
+      toast({
+        title: "Email update failed",
+        message: err instanceof Error ? err.message : "Network error contacting server.",
+        type: "error",
+      });
     } finally {
       setIsRequestingEmail(false);
     }
@@ -97,11 +134,28 @@ export default function AccountSettingsPage() {
   async function handleSignOutOthers() {
     setIsSigningOutOthers(true);
     try {
-      await new Promise((r) => setTimeout(r, 500));
+      const res = await fetch("/api/account/sessions", {
+        method: "DELETE",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast({
+          title: "Failed to revoke sessions",
+          message: data?.error?.message || "Could not revoke other sessions.",
+          type: "error",
+        });
+        return;
+      }
       toast({
         title: "Sessions revoked",
-        message: "Signed out of all other active browser sessions.",
+        message: data?.message || "Signed out of all other active browser sessions.",
         type: "success",
+      });
+    } catch (err: unknown) {
+      toast({
+        title: "Failed to revoke sessions",
+        message: err instanceof Error ? err.message : "Error contacting server.",
+        type: "error",
       });
     } finally {
       setIsSigningOutOthers(false);
