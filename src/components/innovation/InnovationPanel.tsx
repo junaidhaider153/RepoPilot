@@ -188,9 +188,9 @@ export function InnovationPanel({ repoUrl, sessionId }: InnovationPanelProps) {
 
       {/* Initial load trigger */}
       {!opportunities && !isLoadingOpps && (
-        <div className="p-8 rounded border border-[#ebebeb] bg-white text-center space-y-4">
-          <Lightbulb className="w-6 h-6 mx-auto text-[#171717]" />
-          <h3 className="text-base font-normal text-[#171717]">
+        <div className="p-8 rounded-xl border border-slate-200/80 bg-gradient-to-b from-white to-slate-50/50 shadow-sm text-center space-y-4 transition-all duration-300">
+          <Lightbulb className="w-6 h-6 mx-auto text-blue-600 animate-pulse" />
+          <h3 className="text-base font-semibold gemini-spark">
             Generate 3 Evidence-Aware Improvement Opportunities
           </h3>
           <p className="text-xs text-[#666666] max-w-lg mx-auto leading-relaxed">
@@ -198,7 +198,7 @@ export function InnovationPanel({ repoUrl, sessionId }: InnovationPanelProps) {
           </p>
           <button
             onClick={handleLoadOpportunities}
-            className="px-5 py-2.5 bg-[#171717] text-white text-xs font-medium rounded hover:bg-[#000000] transition-colors"
+            className="px-5 py-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 text-white text-xs font-medium rounded-lg hover:opacity-95 hover:shadow-md hover:shadow-blue-500/20 active:scale-[0.98] transition-all duration-200"
           >
             Discover Opportunities
           </button>
@@ -206,10 +206,11 @@ export function InnovationPanel({ repoUrl, sessionId }: InnovationPanelProps) {
       )}
 
       {isLoadingOpps && (
-        <div className="p-8 rounded border border-[#ebebeb] bg-white text-center space-y-3">
-          <Loader2 className="w-5 h-5 animate-spin mx-auto text-[#171717]" />
-          <h4 className="text-sm font-medium text-[#171717]">Analyzing Architecture &amp; Synthesizing Opportunities</h4>
-          <p className="text-xs font-mono text-[#666666]">
+        <div className="relative overflow-hidden p-8 rounded-xl border border-blue-200/60 bg-gradient-to-r from-blue-50/30 via-indigo-50/20 to-purple-50/30 shadow-xs text-center space-y-3">
+          <div className="absolute top-0 left-0 right-0 h-0.5 animate-shimmer" />
+          <Loader2 className="w-5 h-5 animate-spin mx-auto text-blue-600" />
+          <h4 className="text-sm font-semibold text-slate-900">Analyzing Architecture &amp; Synthesizing Opportunities</h4>
+          <p className="text-xs font-mono text-slate-600">
             Evaluating inspected files for enhancement hypotheses...
           </p>
         </div>
@@ -238,7 +239,7 @@ export function InnovationPanel({ repoUrl, sessionId }: InnovationPanelProps) {
             {opportunities.map((opp) => (
               <div
                 key={opp.id}
-                className="p-5 rounded border border-[#ebebeb] bg-white flex flex-col justify-between space-y-5 hover:border-[#8f8f8f] transition-all"
+                className="p-5 rounded-xl border border-slate-200 bg-white flex flex-col justify-between space-y-5 hover:border-blue-300 hover:shadow-md hover:shadow-blue-500/5 transition-all duration-200"
               >
                 <div className="space-y-4">
                   {/* Card Header */}
@@ -316,7 +317,7 @@ export function InnovationPanel({ repoUrl, sessionId }: InnovationPanelProps) {
                 {/* Selection Action */}
                 <button
                   onClick={() => handleSelectOpportunity(opp)}
-                  className="w-full mt-4 py-2 px-3 bg-[#171717] text-white text-xs font-medium rounded hover:bg-[#000000] flex items-center justify-center gap-1.5 transition-colors"
+                  className="w-full mt-4 py-2 px-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-medium rounded-lg hover:opacity-95 hover:shadow-xs active:scale-[0.98] flex items-center justify-center gap-1.5 transition-all duration-200"
                 >
                   <span>Build Implementation Plan</span>
                   <ArrowRight className="w-3.5 h-3.5" />

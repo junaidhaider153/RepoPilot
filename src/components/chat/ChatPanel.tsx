@@ -341,10 +341,13 @@ export function ChatPanel({ repoUrl, sessionId }: ChatPanelProps) {
       >
         {/* Starter questions if empty */}
         {messages.length === 0 && (
-          <div className="p-6 rounded-lg border border-[#ebebeb] bg-white space-y-4">
+          <div
+            data-testid="chat-hero-card"
+            className="p-6 rounded-xl border border-slate-200/80 bg-gradient-to-b from-white to-slate-50/60 shadow-sm space-y-4 transition-all duration-300"
+          >
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-[#171717]" />
-              <h3 className="text-sm font-semibold text-[#171717]">
+              <Sparkles className="w-4 h-4 text-blue-600 animate-pulse" />
+              <h3 className="text-sm font-semibold gemini-spark">
                 Ask questions grounded in the inspected codebase
               </h3>
             </div>
@@ -363,9 +366,9 @@ export function ChatPanel({ repoUrl, sessionId }: ChatPanelProps) {
                     type="button"
                     onClick={() => handleSend(sq)}
                     disabled={isLoading}
-                    className="p-3 text-left rounded-md border border-[#ebebeb] bg-[#fafafa] hover:bg-white hover:border-[#171717] transition-all text-xs text-[#333333] leading-relaxed group"
+                    className="p-3 text-left rounded-lg border border-slate-200/80 bg-white hover:border-blue-300 hover:shadow-xs hover:bg-blue-50/20 transition-all duration-200 text-xs text-slate-700 leading-relaxed group"
                   >
-                    <span className="group-hover:text-[#171717] transition-colors">
+                    <span className="group-hover:text-blue-700 transition-colors">
                       &ldquo;{sq}&rdquo;
                     </span>
                   </button>
@@ -383,20 +386,29 @@ export function ChatPanel({ repoUrl, sessionId }: ChatPanelProps) {
           return (
             <div
               key={msg.id}
-              className={`group relative p-5 rounded-lg border transition-all ${
+              className={`group relative p-5 rounded-xl border transition-all duration-200 ${
                 isUser
-                  ? "bg-[#fafafa] border-[#ebebeb]"
-                  : "bg-white border-[#ebebeb] shadow-xs"
+                  ? "bg-slate-50/90 border-slate-200/80"
+                  : "bg-white/95 border-slate-200/90 shadow-xs backdrop-blur-xs hover:border-blue-200/80"
               }`}
             >
               {/* Message Header */}
               <div className="flex items-center justify-between mb-2.5">
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-mono uppercase font-semibold text-[#8f8f8f]">
-                    {isUser ? "You" : "▲ RepoPilot"}
-                  </span>
+                  {isUser ? (
+                    <span className="text-[11px] font-mono uppercase font-semibold text-slate-500">
+                      You
+                    </span>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                      <span className="text-[11px] font-mono uppercase font-semibold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
+                        RepoPilot
+                      </span>
+                    </div>
+                  )}
                   {!isUser && msg.answerData?.confidence && (
-                    <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded border border-[#ebebeb] bg-[#fafafa] text-[#666666]">
+                    <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-600">
                       Confidence: {msg.answerData.confidence}
                     </span>
                   )}
@@ -487,15 +499,16 @@ export function ChatPanel({ repoUrl, sessionId }: ChatPanelProps) {
 
         {/* Honest Progress Indicator during loading */}
         {isLoading && (
-          <div className="p-4 rounded-lg border border-[#ebebeb] bg-white flex items-center justify-between text-xs font-mono text-[#666666]">
+          <div className="relative overflow-hidden p-4 rounded-xl border border-blue-200/60 bg-gradient-to-r from-blue-50/40 via-indigo-50/20 to-purple-50/30 shadow-xs flex items-center justify-between text-xs font-mono text-slate-700 transition-all duration-300">
+            <div className="absolute top-0 left-0 right-0 h-0.5 animate-shimmer" />
             <div className="flex items-center gap-2.5">
-              <Loader2 className="w-4 h-4 animate-spin text-[#171717]" />
+              <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
               <span>Analyzing repository context and synthesizing grounded answer...</span>
             </div>
             <button
               type="button"
               onClick={handleStop}
-              className="text-xs text-[#8f8f8f] hover:text-[#171717] underline decoration-[#d4d4d4]"
+              className="text-xs text-slate-500 hover:text-slate-900 underline decoration-slate-300 transition-colors"
             >
               Cancel
             </button>

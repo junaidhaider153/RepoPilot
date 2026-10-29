@@ -50,7 +50,7 @@ export function TopBar({
   return (
     <header
       className={cn(
-        "h-12 bg-white border-b border-[#ebebeb] px-3 sm:px-4 flex items-center justify-between shrink-0 z-10 select-none",
+        "h-12 bg-white/85 backdrop-blur-md border-b border-[#ebebeb]/80 px-3 sm:px-4 flex items-center justify-between shrink-0 z-10 select-none shadow-[0_1px_2px_rgba(0,0,0,0.02)] transition-all",
         className
       )}
     >
@@ -108,10 +108,10 @@ export function TopBar({
                 aria-selected={isActive}
                 onClick={() => onTabChange(tab.id)}
                 className={cn(
-                  "h-full px-2 sm:px-3 text-xs sm:text-sm font-mono tracking-tight flex items-center gap-1.5 border-b-2 transition-all -mb-px focus:outline-none focus-visible:ring-1 focus-visible:ring-[#171717]",
+                  "h-full px-2 sm:px-3 text-xs sm:text-sm font-mono tracking-tight flex items-center gap-1.5 border-b-2 transition-all duration-200 -mb-px focus:outline-none focus-visible:ring-1 focus-visible:ring-blue-600",
                   isActive
-                    ? "border-[#171717] text-[#171717] font-semibold"
-                    : "border-transparent text-[#666666] hover:text-[#171717]"
+                    ? "border-blue-600 text-blue-600 font-semibold"
+                    : "border-transparent text-[#666666] hover:text-[#171717] hover:border-slate-300"
                 )}
               >
                 {tab.icon}
