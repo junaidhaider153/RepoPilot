@@ -58,6 +58,9 @@ function AccountSettingsContent() {
   const [newEmail, setNewEmail] = useState("");
   const [isRequestingEmail, setIsRequestingEmail] = useState(false);
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState<string | null>(null);
+  const [passcode, setPasscode] = useState("");
+  const [isVerifyingCode, setIsVerifyingCode] = useState(false);
+  const [verifiedEmailOverride, setVerifiedEmailOverride] = useState<string | null>(null);
   const [isResendingEmail, setIsResendingEmail] = useState(false);
   const [emailCooldown, setEmailCooldown] = useState(0);
 
@@ -228,6 +231,46 @@ function AccountSettingsContent() {
     }
   }
 
+  async function handleVerifyPasscode(e: React.FormEvent) {
+    e.preventDefault();
+    if (!passcode.trim()) return;
+
+    setIsVerifyingCode(true);
+    try {
+      const res = await fetch("/api/account/email/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: passcode.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast({
+          title: "Verification failed",
+          message: data?.error?.message || "Invalid or expired passcode.",
+          type: "error",
+        });
+        return;
+      }
+
+      setVerifiedEmailOverride(data?.newEmail || pendingVerificationEmail);
+      setPendingVerificationEmail(null);
+      setPasscode("");
+      toast({
+        title: "Email verified successfully",
+        message: data?.message || "Your primary email address has been updated.",
+        type: "success",
+      });
+    } catch (err: unknown) {
+      toast({
+        title: "Verification failed",
+        message: err instanceof Error ? err.message : "Error contacting server.",
+        type: "error",
+      });
+    } finally {
+      setIsVerifyingCode(false);
+    }
+  }
+
   async function handleSignOutOthers() {
     setIsSigningOutOthers(true);
     try {
@@ -301,7 +344,7 @@ function AccountSettingsContent() {
     }
   }
 
-  const userEmail = confirmedEmailParam || user?.email || "developer@repopilot.local";
+  const userEmail = verifiedEmailOverride || confirmedEmailParam || user?.email || "developer@repopilot.local";
   const isDeleteConfirmed = typedConfirmEmail.trim().toLowerCase() === userEmail.toLowerCase();
 
   return (
@@ -352,7 +395,7 @@ function AccountSettingsContent() {
           </Button>
 
           {pendingVerificationEmail && (
-            <div className="p-3.5 rounded-lg border border-[#bfdbfe] bg-[#eff6ff] space-y-2.5 animate-fadeIn">
+            <div className="p-4 rounded-lg border border-[#bfdbfe] bg-[#eff6ff] space-y-3 animate-fadeIn">
               <div className="flex items-start gap-2.5">
                 <Mail className="w-4 h-4 text-[#2563eb] shrink-0 mt-0.5" />
                 <div className="space-y-1">
@@ -360,11 +403,40 @@ function AccountSettingsContent() {
                     Verification email dispatched to {pendingVerificationEmail}
                   </p>
                   <p className="text-[11px] text-[#3b82f6] leading-relaxed">
-                    Please click the verification link in the email to activate your new address. Link expires in 24 hours.
+                    Click the link in the email, or enter the <strong>6-digit verification passcode</strong> from the email below to complete verification.
                   </p>
                   <p className="text-[10px] text-[#64748b]">
                     💡 Check your <strong>Spam / Junk</strong> folder. If you sent the verification to your own sender Gmail, also check <strong>All Mail</strong> or <strong>Sent</strong>.
                   </p>
+                </div>
+              </div>
+
+              {/* 6-Digit Passcode Input Box */}
+              <div className="bg-white border border-[#cbd5e1] rounded-md p-3 space-y-2">
+                <label htmlFor="email-passcode" className="block text-[11px] font-mono uppercase tracking-wider text-[#475569] font-medium">
+                  Enter 6-Digit Passcode:
+                </label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="email-passcode"
+                    type="text"
+                    value={passcode}
+                    onChange={(e) => setPasscode(e.target.value)}
+                    placeholder="e.g. 849-216"
+                    className="font-mono text-sm max-w-[160px] tracking-wider text-center"
+                    disabled={isVerifyingCode}
+                  />
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    onClick={handleVerifyPasscode}
+                    disabled={!passcode.trim() || isVerifyingCode}
+                    isLoading={isVerifyingCode}
+                    className="text-xs font-mono"
+                  >
+                    Verify Code
+                  </Button>
                 </div>
               </div>
 
@@ -385,7 +457,10 @@ function AccountSettingsContent() {
                 </Button>
                 <button
                   type="button"
-                  onClick={() => setPendingVerificationEmail(null)}
+                  onClick={() => {
+                    setPendingVerificationEmail(null);
+                    setPasscode("");
+                  }}
                   className="text-xs font-mono text-[#64748b] hover:text-[#171717] px-2 py-1"
                 >
                   Cancel

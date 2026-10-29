@@ -163,10 +163,10 @@ describe("Sweep 3 Group 6: Accessible Workspace Logout, CRUD, and Gemini Email T
       expect(html).toContain("developer@gmail.com");
       expect(html).toContain("https://repopilot.app/api/account/email/verify?token=sample-secure-token-12345");
       // Check for styled call to action button
-      expect(html).toContain("Verify Email Address");
+      expect(html).toMatch(/Confirm Email Address|Verify Email Address/i);
       // Check for security notices
       expect(html).toMatch(/expire|24 hours/i);
-      expect(html).toMatch(/safely ignore|did not request/i);
+      expect(html).toMatch(/safely disregard|safely ignore|did not request/i);
     });
   });
 

@@ -131,18 +131,25 @@ export async function sendEmail({
 
 /**
  * Composes and dispatches an account email verification email.
+ * Faithfully implements the verified RepoPilot design from code.html & screen.png
+ * with 6-digit verification passcode and 1-click verification link.
  */
 export async function sendVerificationEmail({
   toEmail,
   token,
+  code,
   origin,
 }: {
   toEmail: string;
   token: string;
+  code?: string;
   origin?: string;
 }): Promise<{ success: boolean; messageId: string }> {
   const baseUrl = origin || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   const verifyUrl = `${baseUrl}/api/account/email/verify?token=${encodeURIComponent(token)}`;
+
+  const rawDigits = (code || "849216").replace(/\D/g, "").slice(0, 6).padEnd(6, "0");
+  const formattedPasscode = `${rawDigits.slice(0, 3)} - ${rawDigits.slice(3, 6)}`;
 
   const html = `
 <!DOCTYPE html>
@@ -150,96 +157,122 @@ export async function sendVerificationEmail({
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Verify your RepoPilot Email</title>
+  <title>Confirm Your Email Address - RepoPilot</title>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f0f4f9; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #1e293b;">
-  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f0f4f9; padding: 40px 16px;">
+<body style="margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; -webkit-font-smoothing: antialiased; color: #171717;">
+  <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #f5f5f5; padding: 40px 16px;">
     <tr>
       <td align="center">
-        <!-- Container Card -->
-        <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 560px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04); border: 1px solid #e2e8f0;">
+        <!-- 580px Card Container from screen.png & code.html -->
+        <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="max-width: 580px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04); border: 1px solid #e5e5e5;">
           
-          <!-- Obsidian Header with Gemini Accent -->
+          <!-- Obsidian Header Banner with Brand Logo and Envelope Badge -->
           <tr>
-            <td style="background: linear-gradient(135deg, #090d16 0%, #111827 50%, #1e1b4b 100%); padding: 36px 36px 30px; text-align: left;">
-              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
+            <td style="background: linear-gradient(180deg, #0a0a0a 0%, #171717 100%); padding: 36px 32px 32px; text-align: center; border-bottom: 1px solid #262626;">
+              <!-- Brand Logo & Name -->
+              <table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin: 0 auto 16px;">
                 <tr>
-                  <td>
-                    <!-- Spark badge + Logo -->
-                    <div style="display: inline-block; padding: 4px 12px; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 9999px; font-size: 11px; font-weight: 600; color: #93c5fd; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 12px;">
-                      ✦ Gemini Intelligence · RepoPilot
+                  <td align="center" style="vertical-align: middle;">
+                    <div style="display: inline-block; width: 36px; height: 36px; line-height: 36px; background-color: #ffffff; border-radius: 10px; text-align: center; font-weight: 900; font-size: 16px; color: #0a0a0a; margin-right: 10px; vertical-align: middle; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">
+                      ▲
                     </div>
-                    <h1 style="margin: 0; font-size: 24px; font-weight: 700; color: #ffffff; letter-spacing: -0.025em; line-height: 1.2;">
-                      Confirm your new email address
-                    </h1>
-                    <p style="margin: 8px 0 0; font-size: 13px; color: #94a3b8; line-height: 1.4;">
-                      Verify your account credentials to keep your repository workspace secure.
-                    </p>
+                    <span style="color: #ffffff; font-weight: 700; font-size: 20px; letter-spacing: -0.02em; vertical-align: middle;">
+                      RepoPilot
+                    </span>
                   </td>
                 </tr>
               </table>
+
+              <!-- Envelope Icon Box Badge -->
+              <div style="display: inline-block; width: 56px; height: 56px; border-radius: 16px; background-color: #262626; border: 1px solid #404040; text-align: center; line-height: 54px;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; display: inline-block;">
+                  <path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                </svg>
+              </div>
             </td>
           </tr>
 
-          <!-- Main Body Content -->
+          <!-- Main Card Body -->
           <tr>
             <td style="padding: 36px 36px 28px;">
-              <p style="margin: 0 0 16px; font-size: 15px; line-height: 1.6; color: #334155;">
-                Hello,
-              </p>
-              <p style="margin: 0 0 24px; font-size: 15px; line-height: 1.6; color: #334155;">
-                We received a request to update the primary email address for your RepoPilot account to:
+              <h2 style="margin: 0; font-size: 24px; font-weight: 700; color: #171717; letter-spacing: -0.025em; text-align: center; line-height: 1.2;">
+                Confirm your email address
+              </h2>
+              <p style="margin: 12px 0 0; font-size: 15px; line-height: 1.6; color: #525252; text-align: center;">
+                Welcome to RepoPilot! Thanks for signing up (${toEmail}). Please confirm your email address to activate your account and access your dashboard.
               </p>
 
-              <!-- Target Email Highlight Pill -->
-              <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #3b82f6; border-radius: 8px; padding: 14px 18px; margin-bottom: 28px;">
-                <span style="font-size: 12px; font-family: ui-monospace, Menlo, Monaco, Consolas, monospace; text-transform: uppercase; color: #64748b; display: block; margin-bottom: 4px; font-weight: 600;">Target Email</span>
-                <span style="font-size: 16px; font-weight: 600; color: #0f172a; font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;">${toEmail}</span>
-              </div>
-
-              <!-- Call to Action Button -->
-              <table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin: 0 auto 32px; width: 100%;">
+              <!-- Primary CTA Button (Black pill with checkmark) -->
+              <table role="presentation" border="0" cellspacing="0" cellpadding="0" style="margin: 28px auto 24px;">
                 <tr>
                   <td align="center">
-                    <a href="${verifyUrl}" target="_blank" style="display: inline-block; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 50%, #4338ca 100%); color: #ffffff; font-size: 14px; font-weight: 600; text-decoration: none; padding: 14px 36px; border-radius: 9999px; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35); letter-spacing: -0.01em;">
-                      Verify Email Address
+                    <a href="${verifyUrl}" target="_blank" style="display: inline-block; background-color: #0a0a0a; color: #ffffff; font-weight: 600; font-size: 14px; text-decoration: none; padding: 14px 34px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12); border: 1px solid #0a0a0a; letter-spacing: -0.01em;">
+                      ✓ &nbsp;Confirm Email Address
                     </a>
                   </td>
                 </tr>
               </table>
 
-              <!-- Expiration Warning Pill -->
-              <div style="background-color: #fefce8; border: 1px solid #fef08a; border-radius: 8px; padding: 10px 14px; margin-bottom: 28px; text-align: center;">
-                <p style="margin: 0; font-size: 12px; color: #854d0e; font-weight: 500;">
-                  ⏱ This secure verification link will expire in <strong>24 hours</strong>.
+              <!-- Divider: OR ENTER CODE MANUALLY -->
+              <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="margin: 28px 0 20px;">
+                <tr>
+                  <td style="border-bottom: 1px solid #e5e5e5; font-size: 0; line-height: 0;">&nbsp;</td>
+                  <td style="width: auto; padding: 0 12px; white-space: nowrap; text-align: center;">
+                    <span style="font-size: 11px; font-weight: 600; color: #a3a3a3; letter-spacing: 0.1em; text-transform: uppercase;">
+                      OR ENTER CODE MANUALLY
+                    </span>
+                  </td>
+                  <td style="border-bottom: 1px solid #e5e5e5; font-size: 0; line-height: 0;">&nbsp;</td>
+                </tr>
+              </table>
+
+              <!-- Alternative 6-Digit Passcode Box -->
+              <div style="background-color: #fafafa; border: 1px solid #e5e5e5; border-radius: 14px; padding: 20px; text-align: center; margin-bottom: 24px;">
+                <span style="font-size: 11px; font-weight: 600; color: #737373; text-transform: uppercase; letter-spacing: 0.1em; display: block; margin-bottom: 8px;">
+                  VERIFICATION PASSCODE
+                </span>
+                <div style="display: inline-block; background: #ffffff; border: 1px solid #d4d4d4; border-radius: 10px; padding: 10px 28px; box-shadow: 0 1px 3px rgba(0,0,0,0.04);">
+                  <span style="font-family: 'JetBrains Mono', ui-monospace, Menlo, Monaco, Consolas, monospace; font-size: 24px; font-weight: 700; letter-spacing: 0.25em; color: #0a0a0a;">
+                    ${formattedPasscode}
+                  </span>
+                </div>
+                <p style="margin: 10px 0 0; font-size: 12px; color: #a3a3a3;">
+                  Enter this single-use code if prompted by the application.
                 </p>
               </div>
 
-              <!-- Fallback Direct URL Box -->
-              <p style="margin: 0 0 8px; font-size: 12px; color: #64748b; font-weight: 500;">
-                Button not working? Copy and paste this URL directly into your browser:
-              </p>
-              <div style="background-color: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; margin-bottom: 24px; word-break: break-all; font-family: ui-monospace, Menlo, Monaco, Consolas, monospace; font-size: 11px; color: #334155; line-height: 1.5;">
-                ${verifyUrl}
+              <!-- Direct URL Fallback -->
+              <div style="border-top: 1px solid #f0f0f0; padding-top: 20px; margin-top: 20px;">
+                <p style="margin: 0 0 8px; font-size: 12px; font-weight: 500; color: #737373;">
+                  Trouble clicking the button? Copy and paste this URL into your web browser:
+                </p>
+                <div style="background-color: #fafafa; border: 1px solid #e5e5e5; border-radius: 8px; padding: 10px 14px; word-break: break-all; font-family: ui-monospace, Menlo, Monaco, Consolas, monospace; font-size: 11px; color: #404040; line-height: 1.5;">
+                  ${verifyUrl}
+                </div>
               </div>
 
-              <hr style="border: none; border-top: 1px solid #f1f5f9; margin: 24px 0;" />
-
-              <p style="margin: 0; font-size: 12px; color: #94a3b8; line-height: 1.5;">
-                If you did not request this email change, please ignore this message. Your RepoPilot account credentials will remain unchanged.
-              </p>
+              <!-- Expiration Warning Callout -->
+              <div style="margin-top: 20px; background-color: #fafafa; border: 1px solid #e5e5e5; border-radius: 12px; padding: 12px 16px; font-size: 12px; line-height: 1.5; color: #525252;">
+                <strong style="color: #0a0a0a;">This link expires in 24 hours.</strong> If you did not create an account or request this verification, please safely disregard this email.
+              </div>
             </td>
           </tr>
 
-          <!-- Footer -->
+          <!-- Footer matching screen.png -->
           <tr>
-            <td style="background-color: #fafbfc; border-top: 1px solid #f1f5f9; padding: 20px 36px; text-align: center;">
-              <p style="margin: 0 0 4px; font-size: 11px; font-weight: 600; color: #475569; letter-spacing: 0.02em;">
-                RepoPilot · AI-Powered Repository Reverse Engineering
+            <td style="background-color: #fafafa; border-top: 1px solid #e5e5e5; padding: 24px 36px; text-align: center; font-size: 12px; color: #737373;">
+              <div style="font-weight: 600; color: #0a0a0a; margin-bottom: 6px;">
+                Powered by RepoPilot
+              </div>
+              <p style="margin: 0 0 12px; font-size: 11px; color: #737373; line-height: 1.4;">
+                You're receiving this email because you signed up for an application built on RepoPilot.
               </p>
-              <p style="margin: 0; font-size: 10px; color: #94a3b8;">
-                Built with Google Gemini & Next.js · Confidential Security Notification
-              </p>
+              <div style="border-top: 1px solid #e5e5e5; padding-top: 12px; font-size: 11px; color: #737373; margin-bottom: 4px;">
+                Powered by <strong style="color: #0a0a0a;">RepoPilot</strong>
+              </div>
+              <div style="font-size: 10px; color: #a3a3a3;">
+                © 2026 RepoPilot, Inc. 970 Folsom St, San Francisco, CA 94107
+              </div>
             </td>
           </tr>
 
@@ -252,28 +285,27 @@ export async function sendVerificationEmail({
   `.trim();
 
   const text = `
-RepoPilot · Gemini Intelligence
-Confirm your new email address
+RepoPilot - Confirm your email address
 
-Hello,
+Welcome to RepoPilot! Thanks for signing up. Please confirm your email address to activate your account and access your dashboard.
 
-We received a request to update the primary email address for your RepoPilot account to:
-${toEmail}
-
-Please open the following link in your browser to verify this email address:
+1. Click to confirm your email:
 ${verifyUrl}
 
-⏱ This link will expire in 24 hours.
+OR ENTER CODE MANUALLY:
+VERIFICATION PASSCODE: ${formattedPasscode}
+(Single-use code: ${rawDigits})
 
-If you did not request this change, you can safely ignore this email. Your current account credentials will remain unchanged.
+This link and code expire in 24 hours. If you did not request this verification, please safely disregard this email.
 
 ---
-RepoPilot · AI-Powered Repository Reverse Engineering
+Powered by RepoPilot
+© 2026 RepoPilot, Inc. 970 Folsom St, San Francisco, CA 94107
   `.trim();
 
   return sendEmail({
     to: toEmail,
-    subject: "Verify your new RepoPilot email address",
+    subject: "Confirm your email address - RepoPilot",
     html,
     text,
   });

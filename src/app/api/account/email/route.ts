@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthUser } from "@/lib/auth/get-user";
 import { isSmtpConfigured, sendVerificationEmail } from "@/lib/email/mailer";
-import { createEmailVerificationToken } from "@/lib/email/tokens";
+import { createEmailVerificationTokenAndCode } from "@/lib/email/tokens";
 import { z } from "zod";
 
 const EmailSchema = z.object({
@@ -59,18 +59,19 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const token = createEmailVerificationToken(user.id, newEmail);
+    const { token, code } = createEmailVerificationTokenAndCode(user.id, newEmail);
     const origin = req.nextUrl.origin;
 
     await sendVerificationEmail({
       toEmail: newEmail,
       token,
+      code,
       origin,
     });
 
     return NextResponse.json({
       success: true,
-      message: `A verification email has been sent to ${newEmail}. Please click the verification link in the email to complete the change.`,
+      message: `A verification email with passcode has been sent to ${newEmail}. Please click the link or enter the 6-digit passcode.`,
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Failed to dispatch verification email.";
