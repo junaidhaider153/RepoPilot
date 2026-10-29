@@ -1,157 +1,192 @@
-# ▲ RepoPilot — From Codebase to Blueprint
+<div align="center">
+  <img src="public/brand/logo.jpg" alt="RepoPilot Logo" width="280" style="border-radius: 16px; margin-bottom: 16px;" />
 
-> AI-powered repository understanding and project planning tool for developers, hackathon participants, and engineering leads.
+  # RepoPilot
 
-RepoPilot analyzes public GitHub repositories with bounded context extraction, answers codebase questions grounded in retrieved source files, synthesizes unified project specifications (PRD, TRD, TDD, and phased coding-agent prompts), and generates evidence-backed Innovation Blueprints with actionable implementation plans.
+  **Evidence-Grounded Codebase Intelligence & Innovation Blueprint Engine**
 
-Built for the **Hacktoberfest Hack Day** using Next.js App Router, TypeScript, Tailwind CSS, and Gemma 2 via configurable inference adapters.
+  [![Next.js](https://img.shields.io/badge/Next.js-15-black?logo=next.js)](https://nextjs.org/)
+  [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue?logo=typescript)](https://www.typescriptlang.org/)
+  [![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
+  [![Gemma](https://img.shields.io/badge/AI-Gemma_2-orange?logo=google)](https://deepmind.google/technologies/gemma/)
+  [![Supabase](https://img.shields.io/badge/Auth-Supabase-3ECF8E?logo=supabase)](https://supabase.com/)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+  [![Tests](https://img.shields.io/badge/Tests-204%20Passing-brightgreen)](./tests)
 
----
+  <br />
 
-## 🌟 Core Features
+  <p align="center">
+    RepoPilot transforms complex public GitHub repositories into grounded architecture models, interactive architectural Q&A, coordinated project specifications (PRD, TRD, TDD, Agent Prompts), and actionable Innovation Blueprints.
+  </p>
 
-1. **Repository Ingestion & Bounded Analysis**
-   - Strictly validates public GitHub HTTPS repository URLs; rejects malicious hosts, path traversal, and unauthorized protocols.
-   - Bounded ingestion: retrieves default branch tree, prioritizes README, manifests (`package.json`, `Cargo.toml`, `pyproject.toml`, `go.mod`), configuration files, and key source entry points.
-   - Automatic exclusions: strips binary files, lockfile bulk, dependency directories (`node_modules/`, `vendor/`), and secret files (`.env`, `*.pem`, `*.key`).
-   - Automatically detects programming languages, libraries, and frameworks.
-
-2. **Repository Architecture Overview**
-   - Generates purpose summaries, system architecture breakdowns, and key component cards.
-   - Grounded citations: every component references inspected file paths.
-   - Separation of concerns: clearly differentiates **Observed Facts**, **Architectural Inferences**, and **Unknowns**.
-
-3. **Grounded Codebase Q&A (Ask the Repository)**
-   - Conversational chat grounded strictly in retrieved context.
-   - Answers cite exact file paths.
-   - Expresses uncertainty: when information is absent from inspected files, RepoPilot explicitly declares `insufficientEvidence: true` rather than hallucinating details.
-   - Prompt-injection defense: treats repository files as untrusted text enclosed in security delimiters (`<untrusted_repository_content>`), ensuring instructions in source code cannot override system policies.
-
-4. **Project Document Generation (PRD, TRD, TDD, Agent Prompt)**
-   - Two-stage synthesis: first establishes a cohesive **Shared Project Specification**, then derives all four documents from that single specification to eliminate cross-document contradictions.
-   - **PRD**: Product Requirements Document (problem, target users, goals, user stories, acceptance criteria).
-   - **TRD**: Technical Requirements Document (technology stack, architecture pattern, constraints, security, testing strategy).
-   - **TDD**: Technical Design Document (components, data models, request flows, risks & mitigations).
-   - **Coding-Agent Prompt**: Ready-to-use phased instructions for autonomous coding agents (Claude Code, Cursor, Antigravity, Copilot).
-   - 1-click Markdown copy and download for individual documents or full bundle.
-
-5. **Innovation Blueprint**
-   - Discovers **three (3) prioritized enhancement opportunities** directly grounded in inspected files (e.g., concurrency bottlenecks, missing tests, scaling limits).
-   - Labels differentiation as a testable **hypothesis**, not an objective market certainty.
-   - Interactive selection: expand any opportunity into an actionable **Implementation Blueprint** with technical requirements, affected components, phased implementation tasks, verification tests, and a dedicated coding-agent prompt.
+  <p align="center">
+    <a href="#-deploy-to-vercel"><b>Deploy to Vercel</b></a> •
+    <a href="#-core-capabilities"><b>Features</b></a> •
+    <a href="#-quick-start"><b>Local Setup</b></a> •
+    <a href="#-environment-variables"><b>Environment Variables</b></a> •
+    <a href="#-architecture"><b>Architecture</b></a>
+  </p>
+</div>
 
 ---
 
-## 🛠️ Tech Stack & Design System
+## 🚀 Deploy to Vercel
 
-- **Framework**: Next.js 15+ (App Router, Server Actions, Serverless Edge Route Handlers)
-- **Language**: TypeScript 5.7+ (strict mode enabled)
-- **Styling**: Tailwind CSS configured with custom developer tokens (`#fafafa` paper white, `#171717` obsidian text/buttons, `#ebebeb` hairline borders, `#297a3a` terminal green for success confirmation)
-- **Typography**: Geist Sans & Geist Mono (with Inter and JetBrains Mono fallbacks)
-- **AI Inference**: Gemma (e.g. `gemma2-9b-it`) accessed through a server-only OpenAI-compatible provider adapter (Groq, OpenRouter, Ollama, Hugging Face, etc.)
-- **Validation**: Zod runtime schema validation for all inputs and model outputs
-- **Testing**: Vitest for unit & integration testing
-- **Deployment**: Vercel ready (stateless, zero database required for MVP)
+RepoPilot is configured and optimized for immediate zero-config deployment on Vercel.
+
+### 1-Click Deployment
+
+Click the button below to fork and deploy directly into your Vercel account:
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/junaidhaider153/RepoPilot&env=NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY,SUPABASE_SERVICE_ROLE_KEY,GEMMA_API_BASE_URL,GEMMA_MODEL,GEMMA_API_KEY,GITHUB_TOKEN,NEXT_PUBLIC_APP_URL)
 
 ---
 
-## 🚀 Getting Started
+### Manual Vercel Deployment Steps
+
+1. **Import Project**:
+   - Go to [vercel.com/new](https://vercel.com/new).
+   - Under **Import Git Repository**, select **`junaidhaider153/RepoPilot`**.
+   - Framework Preset will auto-detect as **Next.js**.
+
+2. **Add Environment Variables**:
+   In the Vercel deployment modal, add the following variables under **Environment Variables**:
+
+   | Variable Name | Description | Example / Required Value |
+   |---|---|---|
+   | `NEXT_PUBLIC_SUPABASE_URL` | Your Supabase Project URL | `https://your-project.supabase.co` |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase Anon Public Key | `sb_publishable_...` |
+   | `SUPABASE_SERVICE_ROLE_KEY` | Supabase Service Role Secret Key | `sb_secret_...` |
+   | `GEMMA_API_BASE_URL` | Inference Endpoint Base URL | `https://generativelanguage.googleapis.com/v1beta/openai` *(or Groq / OpenRouter / Ollama)* |
+   | `GEMMA_MODEL` | Target Gemma Model | `gemma-2-9b-it` *(or `gemma2-9b-it`)* |
+   | `GEMMA_API_KEY` | API Key for Gemma inference | Your Google AI Studio or Groq Key |
+   | `GITHUB_TOKEN` | GitHub PAT (increases rate limit to 5k req/hr) | `ghp_...` |
+   | `NEXT_PUBLIC_APP_URL` | Production application base URL | `https://your-repopilot.vercel.app` |
+   | `SMTP_HOST` *(Optional)* | SMTP Host for custom mailers | `smtp.gmail.com` |
+   | `SMTP_PORT` *(Optional)* | SMTP Port | `465` |
+   | `SMTP_USER` *(Optional)* | SMTP Email Username | `your-email@gmail.com` |
+   | `SMTP_PASS` *(Optional)* | Google App Password (16 chars) | `xxxx xxxx xxxx xxxx` |
+   | `SMTP_FROM` *(Optional)* | Outgoing Mail Sender Display | `"RepoPilot <your-email@gmail.com>"` |
+
+3. **Click Deploy**:
+   Vercel will build and deploy your live production instance in ~60 seconds.
+
+4. **Update Supabase Redirect URLs**:
+   Once Vercel gives you your live URL (e.g., `https://repopilot.vercel.app`):
+   - Open your **Supabase Dashboard** $\rightarrow$ **Authentication** $\rightarrow$ **URL Configuration**.
+   - Set **Site URL** to: `https://your-repopilot.vercel.app`.
+   - Add to **Redirect URLs**: `https://your-repopilot.vercel.app/**`.
+
+---
+
+## 🌟 Core Capabilities
+
+### 1. Bounded Repository Ingestion
+- Ingests public repositories via validated HTTPS GitHub URLs.
+- Traversal protection rejects malicious paths, non-GitHub hosts, and private endpoints.
+- Excludes binary assets, lockfile bulk, dependency directories (`node_modules/`, `vendor/`), and credential files (`.env`, `*.pem`).
+- Automatically identifies tech stacks, manifest dependencies, and key entry points.
+
+### 2. Evidence-Grounded Architecture Model
+- Synthesizes architecture summaries, component diagrams, and runtime pipelines.
+- Differentiates verified facts from probabilistic inferences.
+- Every architecture card cites inspected source file paths.
+
+### 3. Untrusted Codebase Q&A ("Ask the Repository")
+- Context-bounded conversational chat assistant.
+- Delimited with untrusted boundaries (`<untrusted_repository_content>`) to resist prompt-injection attacks.
+- Honestly expresses `insufficientEvidence: true` when source files do not contain the answer, preventing hallucinations.
+
+### 4. Harmonized Specification Synthesis
+- Two-stage generation guarantees cross-document consistency:
+  - **PRD**: Problem definition, user personas, success criteria, user stories.
+  - **TRD**: Tech stack, constraints, scalability boundaries, security controls.
+  - **TDD**: Component structure, data models, sequence flows, risk matrix.
+  - **Coding Agent Prompt**: Phased prompt instructions ready for autonomous AI coding agents (Claude Code, Cursor, Antigravity).
+
+### 5. Innovation Blueprint Engine
+- Identifies 3 evidence-backed technical enhancement opportunities from the codebase.
+- Expands any selected opportunity into a full step-by-step implementation blueprint with task breakdowns, test specifications, and agent prompts.
+
+### 6. Authentication & Persistence Layer
+- Full email/password registration with dual-mode verification:
+  - 8-digit **Verification Passcode** input directly on `/signup`.
+  - 1-click email confirmation links.
+- GitHub OAuth integration support.
+- Obsidian developer theme inspired by clean enterprise typography and hairline borders.
+- Persistent sessions, chat history, document generation, and export capabilities.
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technologies |
+|---|---|
+| **Framework** | Next.js 15 (App Router, Server Actions, Route Handlers) |
+| **Language** | TypeScript 5.7+ (Strict Mode) |
+| **Styling** | Tailwind CSS v4, Lucide Icons, Geist Sans / Geist Mono fonts |
+| **Inference Engine** | Gemma 2 (via OpenAI-compatible provider adapter) |
+| **Database & Auth** | Supabase (PostgreSQL, Row Level Security, Supabase Auth) |
+| **Transactional Email** | Supabase Auth Templates & Nodemailer SMTP with Google App Password support |
+| **Testing** | Vitest, React Testing Library, JSDOM |
+| **Deployment** | Vercel (Edge & Node.js Serverless Functions) |
+
+---
+
+## 💻 Local Development Setup
 
 ### Prerequisites
+- Node.js `20.x` or `22.x+`
+- npm `10.x+`
 
-- Node.js `v20+` or `v24+`
-- npm `10+` or `11+`
-
-### 1. Clone & Install
-
+### 1. Clone Repository
 ```bash
-git clone https://github.com/your-username/repopilot.git
-cd repopilot
+git clone https://github.com/junaidhaider153/RepoPilot.git
+cd RepoPilot
 npm install
 ```
 
-### 2. Configure Environment
-
+### 2. Environment Configuration
 Copy `.env.example` to `.env.local`:
-
 ```bash
 cp .env.example .env.local
 ```
-
-Configure your inference provider and optional GitHub token in `.env.local`:
-
-```env
-# Optional: raises GitHub unauthenticated rate limit from 60 to 5,000 req/hr
-GITHUB_TOKEN=your_github_personal_access_token
-
-# Gemma Provider (Groq example)
-GEMMA_API_BASE_URL=https://api.groq.com/openai/v1
-GEMMA_MODEL=gemma2-9b-it
-GEMMA_API_KEY=gsk_your_groq_api_key
-
-# Alternatively, for local Ollama:
-# GEMMA_API_BASE_URL=http://localhost:11434/v1
-# GEMMA_MODEL=gemma2:9b
-# GEMMA_API_KEY=ollama
-
-# Provider timeout and bounded context limits
-AI_REQUEST_TIMEOUT_MS=30000
-MAX_REPOSITORY_FILES=25
-MAX_FILE_BYTES=49152
-MAX_CONTEXT_CHARS=120000
-MAX_REQUESTS_PER_WINDOW=30
-```
-
-> **Note on Model Configuration**: RepoPilot adheres to strict AI transparency. If credentials or configuration are absent, the application gracefully reports configuration instructions rather than silently substituting an alternative model.
+Fill in your Supabase credentials and AI inference key in `.env.local`.
 
 ### 3. Run Development Server
-
 ```bash
 npm run dev
 ```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Open [http://localhost:3000](http://localhost:3000) to start exploring repositories.
 
 ---
 
-## 🧪 Testing & Quality Gates
+## 🧪 Quality & Verification Gates
 
-RepoPilot follows a strict test-driven quality gate after every module.
+RepoPilot enforces strict testing and type safety across all components:
 
 ```bash
-# Run all unit and integration tests (Vitest)
+# Run complete test suite (204 tests across 40 test files)
 npm test
 
-# Run TypeScript typecheck
+# Run TypeScript strict type verification
 npm run typecheck
 
-# Run Next.js production build
+# Verify Next.js production build locally
 npm run build
 ```
 
 ---
 
-## 📖 Walkthrough Demo Path
+## 🔒 Security & Safe Ingestion Architecture
 
-1. **Submit Repository**: Paste any public GitHub URL (e.g., `https://github.com/octocat/Hello-World` or `https://github.com/facebook/react`) or click one of the sample repository pills.
-2. **Review Overview**: Inspect detected technology stack tags, purpose summary, architectural overview, key components with verified file path chips, and coverage limitations.
-3. **Ask the Codebase**: Navigate to **Ask Codebase** and ask questions like *"How does routing work?"* or *"What dependencies are imported?"*. Observe that answers cite verified file paths and acknowledge when evidence is absent.
-4. **Generate Documents**: Navigate to **Project Documents**, provide an optional project goal, and click **Generate PRD, TRD, TDD & Coding Prompt**. Review each document in the tabbed viewer and copy or download the markdown files.
-5. **Explore Innovations**: Navigate to **Innovation Blueprint** and generate 3 evidence-backed opportunities. Select an opportunity to expand it into a full phased implementation roadmap with acceptance tests and coding-agent prompt.
-
----
-
-## 🔒 Security & Privacy Model
-
-- **No Code Execution**: Repository files are never executed, compiled, or evaluated on the server.
-- **Untrusted Boundaries**: All external content from GitHub is treated as untrusted third-party data enclosed in boundary delimiters.
-- **Server-Only Credentials**: Provider keys (`GEMMA_API_KEY`, `GITHUB_TOKEN`) are strictly restricted to server-side route handlers and never exposed in client bundles.
-- **Abuse Throttling**: In-memory sliding-window rate limiting prevents API abuse and denial of service.
-- **Path Sanitization**: Directory traversal (`..`, `%2e`) and non-GitHub hosts are rejected prior to network requests.
+- **Zero Remote Code Execution**: Code files are parsed as static text data and never executed or evaluated.
+- **Untrusted Context Isolation**: External repository data is encapsulated inside explicit security tags.
+- **Server-Only Credentials**: Secrets (`SUPABASE_SERVICE_ROLE_KEY`, `GEMMA_API_KEY`, `GITHUB_TOKEN`) are strictly confined to server-side routes and never bundled into the client runtime.
+- **Rate Limiting**: Sliding-window rate limiters protect API routes against abuse and denial of service.
 
 ---
 
 ## 📄 License
 
-MIT License. See [LICENSE](./LICENSE) for details.
-
+This project is licensed under the [MIT License](./LICENSE).
