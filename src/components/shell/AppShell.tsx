@@ -56,6 +56,7 @@ export interface AppShellProps {
   initialSessionId?: string;
   initialTab?: SessionTab;
   user?: UserProfileData;
+  onSignOut?: () => void;
   className?: string;
 }
 
@@ -72,6 +73,7 @@ function AppShellInner({
   initialSessionId = "s-1",
   initialTab = "chat",
   user,
+  onSignOut,
   className,
 }: AppShellProps) {
   const { toast } = useToast();
@@ -217,6 +219,7 @@ function AppShellInner({
           user={user}
           isCollapsed={isCollapsed}
           onToggleCollapse={() => setIsCollapsed((prev) => !prev)}
+          onSignOut={onSignOut}
         />
       </div>
 
@@ -237,6 +240,7 @@ function AppShellInner({
           user={user}
           isCollapsed={false}
           onToggleCollapse={() => setIsMobileMenuOpen(false)}
+          onSignOut={onSignOut}
           className="border-r-0 w-full"
         />
       </MobileDrawer>
@@ -250,6 +254,8 @@ function AppShellInner({
           onTabChange={setActiveTab}
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
           onExportAll={handleExportAll}
+          user={user}
+          onSignOut={onSignOut}
         />
 
         {/* Dynamic Content Canvas */}

@@ -3,6 +3,7 @@
 import React, { use, useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSessionContext, ExtendedSessionItem } from "@/context/SessionContext";
+import { useAuth } from "@/context/AuthContext";
 import { SessionWorkspaceProvider } from "@/context/SessionWorkspaceContext";
 import { TopBar } from "@/components/shell/TopBar";
 import { SessionTab } from "@/components/shell/types";
@@ -24,7 +25,14 @@ export default function SessionLayout({
   const router = useRouter();
   const { toast } = useToast();
   const { openMobileMenu } = useMobileNav();
-  const { getSession, sessions, updateSession, addOrUpdateSession } = useSessionContext();
+  const { getSession, sessions, updateSession, addOrUpdateSession, user: defaultUser } = useSessionContext();
+  const { user: authUser, signOut } = useAuth();
+  const currentUser = authUser || defaultUser;
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push("/login");
+  };
 
   const [session, setSession] = useState<ExtendedSessionItem | undefined>(() => getSession(sessionId));
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -345,6 +353,8 @@ export default function SessionLayout({
           onExportAll={handleExportAll}
           onRefresh={handleRefresh}
           isRefreshing={isRefreshing}
+          user={currentUser}
+          onSignOut={handleSignOut}
         />
 
         {/* Tab Viewport */}

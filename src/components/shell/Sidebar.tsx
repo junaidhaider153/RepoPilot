@@ -384,78 +384,92 @@ export function Sidebar({
           </div>
         )}
 
-        {/* User Menu */}
-        <div className="pt-1 border-t border-[#ebebeb]/60">
-          <Dropdown
-            align="left"
-            width="w-56"
-            trigger={
-              <button
-                aria-label="User Account Menu"
-                className={cn(
-                  "w-full flex items-center gap-2 p-1.5 rounded hover:bg-[#fafafa] transition-colors text-left focus:outline-none focus:ring-1 focus:ring-[#171717]",
-                  isCollapsed ? "justify-center" : ""
-                )}
-              >
-                <div className="w-7 h-7 rounded-full bg-[#171717] text-white text-[11px] font-mono font-medium flex items-center justify-center shrink-0">
-                  {initials}
-                </div>
-                {!isCollapsed && (
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-[#171717] truncate">
-                      {user.displayName}
-                    </p>
-                    <p className="text-[10px] text-[#8f8f8f] truncate font-mono">
-                      {user.email}
-                    </p>
+        {/* User Profile & Direct Sign Out */}
+        <div className="pt-1.5 border-t border-[#ebebeb]/80 flex items-center justify-between gap-1">
+          <div className="flex-1 min-w-0">
+            <Dropdown
+              align="left"
+              width="w-56"
+              trigger={
+                <button
+                  aria-label="User Account Menu"
+                  className={cn(
+                    "w-full flex items-center gap-2 p-1.5 rounded hover:bg-[#fafafa] transition-colors text-left focus:outline-none focus:ring-1 focus:ring-[#171717]",
+                    isCollapsed ? "justify-center" : ""
+                  )}
+                >
+                  <div className="w-7 h-7 rounded-full bg-[#171717] text-white text-[11px] font-mono font-medium flex items-center justify-center shrink-0">
+                    {initials}
                   </div>
-                )}
-              </button>
-            }
-            items={[
-              {
-                id: "profile",
-                label: "Profile Settings",
-                icon: <User className="w-3.5 h-3.5" />,
-                onClick: () => {
-                  if (typeof window !== "undefined") {
-                    window.location.href = "/app/settings";
-                  }
+                  {!isCollapsed && (
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium text-[#171717] truncate">
+                        {user.displayName}
+                      </p>
+                      <p className="text-[10px] text-[#8f8f8f] truncate font-mono">
+                        {user.email}
+                      </p>
+                    </div>
+                  )}
+                </button>
+              }
+              items={[
+                {
+                  id: "profile",
+                  label: "Profile Settings",
+                  icon: <User className="w-3.5 h-3.5" />,
+                  onClick: () => {
+                    if (typeof window !== "undefined") {
+                      window.location.href = "/app/settings";
+                    }
+                  },
                 },
-              },
-              {
-                id: "settings",
-                label: "Account Preferences",
-                icon: <Settings className="w-3.5 h-3.5" />,
-                onClick: () => {
-                  if (typeof window !== "undefined") {
-                    window.location.href = "/app/settings/account";
-                  }
+                {
+                  id: "settings",
+                  label: "Account Preferences",
+                  icon: <Settings className="w-3.5 h-3.5" />,
+                  onClick: () => {
+                    if (typeof window !== "undefined") {
+                      window.location.href = "/app/settings/account";
+                    }
+                  },
                 },
-              },
-              {
-                id: "shortcuts",
-                label: "Keyboard Shortcuts",
-                icon: <Keyboard className="w-3.5 h-3.5" />,
-                shortcut: "Ctrl+K",
-                onClick: () => {
-                  if (typeof window !== "undefined") {
-                    window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }));
-                  }
+                {
+                  id: "shortcuts",
+                  label: "Keyboard Shortcuts",
+                  icon: <Keyboard className="w-3.5 h-3.5" />,
+                  shortcut: "Ctrl+K",
+                  onClick: () => {
+                    if (typeof window !== "undefined") {
+                      window.dispatchEvent(new KeyboardEvent("keydown", { key: "k", ctrlKey: true }));
+                    }
+                  },
                 },
-              },
-              "divider",
-              {
-                id: "logout",
-                label: "Log out",
-                icon: <LogOut className="w-3.5 h-3.5" />,
-                danger: true,
-                onClick: () => {
-                  onSignOut?.();
+                "divider",
+                {
+                  id: "logout",
+                  label: "Log out",
+                  icon: <LogOut className="w-3.5 h-3.5" />,
+                  danger: true,
+                  onClick: () => {
+                    onSignOut?.();
+                  },
                 },
-              },
-            ]}
-          />
+              ]}
+            />
+          </div>
+
+          {!isCollapsed && (
+            <button
+              type="button"
+              onClick={() => onSignOut?.()}
+              aria-label="Sign out"
+              title="Sign out of RepoPilot"
+              className="p-1.5 text-[#8f8f8f] hover:text-[#dc2626] hover:bg-[#fef2f2] rounded transition-colors focus:outline-none focus:ring-1 focus:ring-[#dc2626] shrink-0"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
     </aside>

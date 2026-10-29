@@ -12,9 +12,13 @@ import {
   FileText,
   Sparkles,
   RefreshCw,
+  LogOut,
+  User,
+  Settings,
 } from "lucide-react";
 import { ModelBadge } from "@/components/ui/ModelBadge";
-import { SessionItemData, SessionTab } from "./types";
+import { SessionItemData, SessionTab, UserProfileData } from "./types";
+import { Dropdown } from "@/components/ui/Dropdown";
 import { cn } from "@/lib/utils";
 
 export interface TopBarProps {
@@ -26,6 +30,8 @@ export interface TopBarProps {
   onRefresh?: () => void;
   isRefreshing?: boolean;
   modelName?: string;
+  user?: UserProfileData;
+  onSignOut?: () => void;
   className?: string;
 }
 
@@ -38,6 +44,8 @@ export function TopBar({
   onRefresh,
   isRefreshing = false,
   modelName = "gemini-flash-lite-latest",
+  user,
+  onSignOut,
   className,
 }: TopBarProps) {
   const tabs = [
@@ -158,6 +166,67 @@ export function TopBar({
               <span className="hidden md:inline">Share</span>
             </button>
           </>
+        )}
+
+        {onSignOut && (
+          <div className="flex items-center gap-1.5 pl-2 ml-1 border-l border-[#ebebeb]">
+            {user && (
+              <Dropdown
+                align="right"
+                width="w-52"
+                trigger={
+                  <button
+                    aria-label={`User profile menu for ${user.displayName || user.email}`}
+                    className="flex items-center gap-1.5 p-1 rounded hover:bg-[#fafafa] transition-colors focus:outline-none focus:ring-1 focus:ring-[#171717]"
+                  >
+                    <div className="w-6 h-6 rounded-full bg-[#171717] text-white text-[10px] font-mono font-medium flex items-center justify-center shrink-0">
+                      {(user.displayName || user.email || "U").slice(0, 1).toUpperCase()}
+                    </div>
+                  </button>
+                }
+                items={[
+                  {
+                    id: "user-name",
+                    label: user.displayName || user.email,
+                    icon: <User className="w-3.5 h-3.5 text-[#8f8f8f]" />,
+                    onClick: () => {
+                      if (typeof window !== "undefined") {
+                        window.location.href = "/app/settings";
+                      }
+                    },
+                  },
+                  {
+                    id: "settings",
+                    label: "Account Settings",
+                    icon: <Settings className="w-3.5 h-3.5" />,
+                    onClick: () => {
+                      if (typeof window !== "undefined") {
+                        window.location.href = "/app/settings/account";
+                      }
+                    },
+                  },
+                  "divider",
+                  {
+                    id: "signout",
+                    label: "Sign out",
+                    icon: <LogOut className="w-3.5 h-3.5 text-[#dc2626]" />,
+                    danger: true,
+                    onClick: () => onSignOut(),
+                  },
+                ]}
+              />
+            )}
+
+            <button
+              onClick={onSignOut}
+              aria-label="Sign out"
+              title="Sign out of RepoPilot"
+              className="p-1.5 sm:px-2.5 sm:py-1 rounded border border-[#ebebeb] text-xs font-mono text-[#4d4d4d] hover:text-[#dc2626] hover:border-[#fecaca] hover:bg-[#fef2f2] flex items-center gap-1.5 transition-colors focus:outline-none focus:ring-1 focus:ring-[#dc2626]"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">Sign out</span>
+            </button>
+          </div>
         )}
       </div>
     </header>

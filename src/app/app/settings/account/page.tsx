@@ -64,6 +64,27 @@ function AccountSettingsContent() {
 
   // Other devices state
   const [isSigningOutOthers, setIsSigningOutOthers] = useState(false);
+  const [isSigningOutCurrent, setIsSigningOutCurrent] = useState(false);
+
+  async function handleSignOutCurrent() {
+    setIsSigningOutCurrent(true);
+    try {
+      await signOut();
+      toast({
+        title: "Signed out",
+        message: "You have been signed out of your RepoPilot account.",
+        type: "info",
+      });
+      router.push("/login");
+    } catch (err: unknown) {
+      toast({
+        title: "Sign out failed",
+        message: err instanceof Error ? err.message : "Error signing out.",
+        type: "error",
+      });
+      setIsSigningOutCurrent(false);
+    }
+  }
 
   async function handlePasswordChange(e: React.FormEvent) {
     e.preventDefault();
@@ -364,21 +385,31 @@ function AccountSettingsContent() {
 
       {/* Active Devices & Sessions */}
       <div className="bg-white rounded-lg border border-[#ebebeb] p-6 sm:p-8 space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-base font-semibold text-[#171717]">Active Devices</h2>
+            <h2 className="text-base font-semibold text-[#171717]">Active Sessions & Devices</h2>
             <p className="text-xs text-[#666666] mt-0.5">
               Current browser and active authorized sessions.
             </p>
           </div>
-          <Button
-            variant="secondary"
-            onClick={handleSignOutOthers}
-            isLoading={isSigningOutOthers}
-          >
-            <LogOut className="w-3.5 h-3.5 mr-1.5" />
-            Sign Out Other Devices
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={handleSignOutCurrent}
+              isLoading={isSigningOutCurrent}
+            >
+              <LogOut className="w-3.5 h-3.5 mr-1.5 text-[#dc2626]" />
+              Sign Out of Current Session
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={handleSignOutOthers}
+              isLoading={isSigningOutOthers}
+            >
+              <ShieldAlert className="w-3.5 h-3.5 mr-1.5" />
+              Sign Out Other Devices
+            </Button>
+          </div>
         </div>
 
         <div className="space-y-3 pt-2">
@@ -395,9 +426,19 @@ function AccountSettingsContent() {
                 </p>
               </div>
             </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white border border-[#ebebeb] text-[#171717] font-medium">
-              This Device
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white border border-[#ebebeb] text-[#171717] font-medium">
+                This Device
+              </span>
+              <button
+                type="button"
+                onClick={handleSignOutCurrent}
+                aria-label="Sign out of this device"
+                className="text-xs font-mono text-[#dc2626] hover:underline px-1.5 py-0.5"
+              >
+                Sign out
+              </button>
+            </div>
           </div>
 
           {/* Secondary Device */}
