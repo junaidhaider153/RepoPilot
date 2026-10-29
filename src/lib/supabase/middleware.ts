@@ -77,9 +77,12 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // If user is already signed in and trying to access /login or /signup, redirect to /app
-  if (user && (pathname === "/login" || pathname === "/signup")) {
-    const nextDestination = sanitizeRedirectPath(request.nextUrl.searchParams.get("next"));
+  // If user is already signed in and trying to access /, /login or /signup, redirect to /app
+  if (user && (pathname === "/" || pathname === "/login" || pathname === "/signup")) {
+    const nextDestination =
+      pathname === "/"
+        ? "/app"
+        : sanitizeRedirectPath(request.nextUrl.searchParams.get("next"));
     const url = request.nextUrl.clone();
     url.pathname = nextDestination;
     url.searchParams.delete("next");

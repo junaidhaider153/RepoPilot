@@ -9,12 +9,25 @@ import { POST as blueprintHandler } from "@/app/api/innovation/blueprint/route";
 import { POST as opportunitiesHandler } from "@/app/api/innovation/opportunities/route";
 import { insertSession } from "@/lib/persistence/store";
 
+let mockAuthUser: { id: string; email: string } | null = null;
+
+vi.mock("@supabase/ssr", () => ({
+  createServerClient: () => ({
+    auth: {
+      getUser: async () => ({
+        data: { user: mockAuthUser },
+      }),
+    },
+  }),
+}));
+
 describe("Group 1 Regression Tests: Security (L-03, L-19, L-14)", () => {
   const originalEnv = process.env;
 
   beforeEach(() => {
     process.env = { ...originalEnv };
     vi.restoreAllMocks();
+    mockAuthUser = null;
   });
 
   afterEach(() => {
@@ -48,7 +61,19 @@ describe("Group 1 Regression Tests: Security (L-03, L-19, L-14)", () => {
     });
   });
 
-  describe("L-19: Open Redirect Prevention", () => {
+  describe("L-19: Open Redirect Prevention & Route Redirection", () => {
+    it("middleware redirects authenticated users visiting / to /app", async () => {
+      mockAuthUser = { id: "u-auth-1", email: "auth@example.com" };
+      process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "test-anon-key";
+
+      const req = new NextRequest("http://localhost:3000/");
+      const res = await updateSession(req);
+
+      expect(res.status).toBe(307);
+      expect(res.headers.get("location")).toBe("http://localhost:3000/app");
+    });
+
     it("sanitizes malicious open redirect targets", () => {
       expect(sanitizeRedirectPath("https://evil.example")).toBe("/app");
       expect(sanitizeRedirectPath("//evil.example")).toBe("/app");

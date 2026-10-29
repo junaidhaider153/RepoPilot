@@ -20,7 +20,26 @@ interface OverviewPanelProps {
 
 export function OverviewPanel({ data }: OverviewPanelProps) {
   const [showFileInventory, setShowFileInventory] = useState(false);
-  const { repository, analysis, detectedTechnologies, analyzedFiles, coverageNotes, aiDisclosure } = data;
+  const repository = data?.repository || {
+    fullName: "Repository",
+    htmlUrl: "#",
+    starsCount: 0,
+    forksCount: 0,
+    defaultBranch: "main",
+    description: "",
+  };
+  const analysis = {
+    purposeSummary: data?.analysis?.purposeSummary || "",
+    architectureOverview: data?.analysis?.architectureOverview || "",
+    keyComponents: data?.analysis?.keyComponents || [],
+    observedFacts: data?.analysis?.observedFacts || [],
+    inferences: data?.analysis?.inferences || [],
+    unknowns: data?.analysis?.unknowns || [],
+  };
+  const detectedTechnologies = data?.detectedTechnologies || [];
+  const analyzedFiles = data?.analyzedFiles || [];
+  const coverageNotes = data?.coverageNotes || [];
+  const aiDisclosure = data?.aiDisclosure || { configured: true, model: "Gemma 2" };
 
   return (
     <div className="space-y-8 animate-fadeIn">
@@ -30,8 +49,8 @@ export function OverviewPanel({ data }: OverviewPanelProps) {
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono text-[#8f8f8f] uppercase">Repository</span>
-              <Badge variant={aiDisclosure.configured ? "success" : "muted"}>
-                {aiDisclosure.model}
+              <Badge variant={aiDisclosure?.configured ? "success" : "muted"}>
+                {aiDisclosure?.model || "Gemma 2"}
               </Badge>
             </div>
             <h2 className="text-2xl font-normal text-[#171717] tracking-tight flex items-center gap-2">
